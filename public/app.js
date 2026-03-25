@@ -310,9 +310,12 @@ btnSubmit.addEventListener('click', async () => {
       body: JSON.stringify(payload),
     });
 
+    const text = await response.text();
+
     if (!response.ok) {
-      const err = await response.json();
-      throw new Error(err.detail || 'Error al enviar');
+      let detail = 'Error al enviar';
+      try { detail = JSON.parse(text).detail || detail; } catch {}
+      throw new Error(detail);
     }
 
     // Success
