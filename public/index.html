@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Abogado IA - Generador de Escritos Legales</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: { 50: '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe', 300: '#93c5fd', 400: '#60a5fa', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8', 800: '#1e40af', 900: '#1e3a5f' },
+            gold: { 400: '#c5a55a', 500: '#b8960c', 600: '#a17d0a' }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+  <!-- Header -->
+  <header class="bg-primary-900 text-white shadow-lg">
+    <div class="max-w-4xl mx-auto px-4 py-5 flex items-center gap-4">
+      <div class="w-12 h-12 bg-gold-500 rounded-lg flex items-center justify-center text-primary-900 font-bold text-xl">AI</div>
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight">Abogado IA</h1>
+        <p class="text-primary-200 text-sm">Generador de Escritos Legales</p>
+      </div>
+    </div>
+  </header>
+
+  <!-- Progress Bar -->
+  <div class="max-w-4xl mx-auto px-4 mt-6">
+    <div class="flex items-center justify-between mb-2">
+      <span id="step-label" class="text-sm font-medium text-primary-800">Paso 1 de 8</span>
+      <span id="step-title" class="text-sm text-gray-500">Tipo de Juicio</span>
+    </div>
+    <div class="w-full bg-gray-200 rounded-full h-2.5">
+      <div id="progress-bar" class="bg-gold-500 h-2.5 rounded-full transition-all duration-500" style="width: 12.5%"></div>
+    </div>
+    <div class="flex justify-between mt-2">
+      <button id="step-1-dot" class="step-dot active" data-step="1">1</button>
+      <button id="step-2-dot" class="step-dot" data-step="2">2</button>
+      <button id="step-3-dot" class="step-dot" data-step="3">3</button>
+      <button id="step-4-dot" class="step-dot" data-step="4">4</button>
+      <button id="step-5-dot" class="step-dot" data-step="5">5</button>
+      <button id="step-6-dot" class="step-dot" data-step="6">6</button>
+      <button id="step-7-dot" class="step-dot" data-step="7">7</button>
+      <button id="step-8-dot" class="step-dot" data-step="8">8</button>
+    </div>
+  </div>
+
+  <!-- Form Container -->
+  <main class="max-w-4xl mx-auto px-4 py-6">
+    <form id="wizard-form" novalidate>
+
+      <!-- PASO 1: Tipo de Juicio -->
+      <section class="wizard-step active" data-step="1">
+        <div class="card">
+          <h2 class="card-title">Tipo de Juicio y Juzgado</h2>
+          <p class="card-desc">Seleccione el tipo de procedimiento e indique el juzgado destino.</p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-6">
+            <div class="field">
+              <label for="tipo_juicio">Tipo de juicio <span class="req">*</span></label>
+              <select id="tipo_juicio" name="tipo_juicio" required>
+                <option value="">Seleccionar...</option>
+                <option value="Pérdida de Patria Potestad">Pérdida de Patria Potestad</option>
+                <option value="Suspensión de Patria Potestad">Suspensión de Patria Potestad</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="fecha_escrito">Fecha del escrito <span class="req">*</span></label>
+              <input type="text" id="fecha_escrito" name="fecha_escrito" placeholder="Ej: 9 de marzo de 2026" required>
+            </div>
+            <div class="field md:col-span-2">
+              <label for="juzgado_destino">Juzgado destino <span class="req">*</span></label>
+              <input type="text" id="juzgado_destino" name="juzgado_destino" placeholder="Ej: JUZGADO QUINTO DE LO FAMILIAR DEL DISTRITO JUDICIAL DE QUERÉTARO" required>
+            </div>
+            <div class="field">
+              <label for="numero_expediente">Número de expediente</label>
+              <input type="text" id="numero_expediente" name="numero_expediente" placeholder="Ej: 1353/25 (vacío si es nuevo)">
+            </div>
+            <div class="field">
+              <label for="fracciones_aplicables">Fracciones aplicables <span class="req">*</span></label>
+              <input type="text" id="fracciones_aplicables" name="fracciones_aplicables" placeholder="Ej: I,II,III (Art 440 o Art 443)" required>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- PASO 2: Datos del Actor -->
+      <section class="wizard-step" data-step="2">
+        <div class="card">
+          <h2 class="card-title">Datos del Actor</h2>
+          <p class="card-desc">Información de quien promueve la demanda.</p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-6">
+            <div class="field">
+              <label for="nombre_actor">Nombre del actor <span class="req">*</span></label>
+              <input type="text" id="nombre_actor" name="nombre_actor" placeholder="Ej: LAURA LUNA RODRÍGUEZ" required>
+            </div>
+            <div class="field">
+              <label for="calidad_actor">Calidad del actor <span class="req">*</span></label>
+              <select id="calidad_actor" name="calidad_actor" required>
+                <option value="">Seleccionar...</option>
+                <option value="madre">Madre</option>
+                <option value="padre">Padre</option>
+                <option value="tutor">Tutor</option>
+                <option value="abuelo/a">Abuelo/a</option>
+              </select>
+            </div>
+            <div class="field md:col-span-2">
+              <label for="domicilio_actor">Domicilio habitual del actor <span class="req">*</span></label>
+              <textarea id="domicilio_actor" name="domicilio_actor" rows="2" placeholder="Calle, número, colonia, ciudad, estado" required></textarea>
+            </div>
+            <div class="field md:col-span-2">
+              <label for="domicilio_procesal">Domicilio procesal <span class="req">*</span></label>
+              <textarea id="domicilio_procesal" name="domicilio_procesal" rows="2" placeholder="Domicilio del despacho para notificaciones" required></textarea>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- PASO 3: Datos del Demandado -->
+      <section class="wizard-step" data-step="3">
+        <div class="card">
+          <h2 class="card-title">Datos del Demandado</h2>
+          <p class="card-desc">Información de la persona contra quien se dirige la demanda.</p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-6">
+            <div class="field">
+              <label for="nombre_demandado">Nombre del demandado <span class="req">*</span></label>
+              <input type="text" id="nombre_demandado" name="nombre_demandado" placeholder="Ej: JONNATAN RODRÍGUEZ HERNÁNDEZ" required>
+            </div>
+            <div class="field">
+              <label for="genero_demandado">Género del demandado <span class="req">*</span></label>
+              <select id="genero_demandado" name="genero_demandado" required>
+                <option value="">Seleccionar...</option>
+                <option value="hombre">Hombre</option>
+                <option value="mujer">Mujer</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="tipo_domicilio_demandado">Tipo de domicilio <span class="req">*</span></label>
+              <select id="tipo_domicilio_demandado" name="tipo_domicilio_demandado" required>
+                <option value="">Seleccionar...</option>
+                <option value="Domicilio Habitual">Domicilio Habitual</option>
+                <option value="Domicilio Laboral">Domicilio Laboral</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="empresa_demandado">Empresa del demandado</label>
+              <input type="text" id="empresa_demandado" name="empresa_demandado" placeholder="Nombre de la empresa donde labora">
+            </div>
+            <div class="field md:col-span-2">
+              <label for="domicilio_demandado">Domicilio del demandado <span class="req">*</span></label>
+              <textarea id="domicilio_demandado" name="domicilio_demandado" rows="2" placeholder="Dirección completa para emplazamiento" required></textarea>
+            </div>
+            <div class="field md:col-span-2">
+              <label for="domicilio_empresa_demandado">Domicilio de la empresa</label>
+              <textarea id="domicilio_empresa_demandado" name="domicilio_empresa_demandado" rows="2" placeholder="Dirección de la empresa (si aplica)"></textarea>
+            </div>
+            <div class="field">
+              <label for="puesto_demandado">Puesto del demandado</label>
+              <input type="text" id="puesto_demandado" name="puesto_demandado" placeholder="Ej: Auxiliar de Secretaría Técnica">
+            </div>
+            <div class="field">
+              <label for="sueldo_demandado">Sueldo del demandado</label>
+              <input type="text" id="sueldo_demandado" name="sueldo_demandado" placeholder="Ej: $20,629.94 (veinte mil...)">
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- PASO 4: Datos del Menor -->
+      <section class="wizard-step" data-step="4">
+        <div class="card">
+          <h2 class="card-title">Datos del Menor</h2>
+          <p class="card-desc">Información del menor involucrado en el procedimiento.</p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-6">
+            <div class="field">
+              <label for="nombre_menor">Nombre del menor <span class="req">*</span></label>
+              <input type="text" id="nombre_menor" name="nombre_menor" placeholder="Nombre completo del menor" required>
+            </div>
+            <div class="field">
+              <label for="apellidos_menor">Apellidos del menor <span class="req">*</span></label>
+              <input type="text" id="apellidos_menor" name="apellidos_menor" placeholder="Apellido paterno y materno" required>
+            </div>
+            <div class="field">
+              <label for="iniciales_menor">Iniciales del menor <span class="req">*</span></label>
+              <input type="text" id="iniciales_menor" name="iniciales_menor" placeholder="Ej: L.L.R.L.">
+            </div>
+            <div class="field">
+              <label for="genero_menor">Género del menor <span class="req">*</span></label>
+              <select id="genero_menor" name="genero_menor" required>
+                <option value="">Seleccionar...</option>
+                <option value="hijo">Hijo</option>
+                <option value="hija">Hija</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="fecha_nacimiento_menor">Fecha de nacimiento <span class="req">*</span></label>
+              <input type="text" id="fecha_nacimiento_menor" name="fecha_nacimiento_menor" placeholder="Ej: 2 de febrero de 2021" required>
+            </div>
+            <div class="field">
+              <label for="edad_menor">Edad del menor <span class="req">*</span></label>
+              <input type="text" id="edad_menor" name="edad_menor" placeholder="Ej: 5 años" required>
+            </div>
+            <div class="field">
+              <label for="escuela_menor">Escuela del menor</label>
+              <input type="text" id="escuela_menor" name="escuela_menor" placeholder="Nombre de escuela o guardería">
+            </div>
+            <div class="field">
+              <label for="documento_identidad_menor">Documento de identidad <span class="req">*</span></label>
+              <select id="documento_identidad_menor" name="documento_identidad_menor" required>
+                <option value="">Seleccionar...</option>
+                <option value="Copia certificada del acta de nacimiento">Copia certificada del acta de nacimiento</option>
+                <option value="Pasaporte">Pasaporte</option>
+                <option value="Constancia Escolar">Constancia Escolar</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- PASO 5: Representación Legal -->
+      <section class="wizard-step" data-step="5">
+        <div class="card">
+          <h2 class="card-title">Representación Legal</h2>
+          <p class="card-desc">Abogados autorizados y personas para recibir notificaciones.</p>
+          <div class="grid grid-cols-1 gap-5 mt-6">
+            <div class="field">
+              <label for="abogados_autorizados">Abogados autorizados <span class="req">*</span></label>
+              <textarea id="abogados_autorizados" name="abogados_autorizados" rows="3" placeholder="LIC. NOMBRE, con Cédula Profesional número XXXX, inscrita en el TSJ bajo el Folio número XXX; y/o LIC. NOMBRE2..." required></textarea>
+            </div>
+            <div class="field">
+              <label for="persona_autorizada_notificaciones">Persona autorizada para notificaciones</label>
+              <input type="text" id="persona_autorizada_notificaciones" name="persona_autorizada_notificaciones" placeholder="Nombre de persona adicional autorizada">
+            </div>
+            <div class="field">
+              <label for="tiene_procedimiento_previo">¿Tiene procedimiento previo? <span class="req">*</span></label>
+              <select id="tiene_procedimiento_previo" name="tiene_procedimiento_previo" required>
+                <option value="">Seleccionar...</option>
+                <option value="No">No</option>
+                <option value="Sí">Sí</option>
+              </select>
+            </div>
+            <div class="field conditional" data-show-when="tiene_procedimiento_previo=Sí" style="display:none;">
+              <label for="texto_procedimiento_previo">Texto del procedimiento previo</label>
+              <textarea id="texto_procedimiento_previo" name="texto_procedimiento_previo" rows="3" placeholder="Ej: existe procedimiento 351/23 radicado en el Juzgado Segundo Familiar..."></textarea>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- PASO 6: Prestaciones -->
+      <section class="wizard-step" data-step="6">
+        <div class="card">
+          <h2 class="card-title">Prestaciones Solicitadas</h2>
+          <p class="card-desc">Configure las prestaciones que se solicitan en la demanda.</p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-6">
+            <div class="field">
+              <label for="incluye_custodia">¿Incluye custodia? <span class="req">*</span></label>
+              <select id="incluye_custodia" name="incluye_custodia" required>
+                <option value="">Seleccionar...</option>
+                <option value="No">No</option>
+                <option value="Sí">Sí</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="incluye_alimentos">¿Incluye alimentos? <span class="req">*</span></label>
+              <select id="incluye_alimentos" name="incluye_alimentos" required>
+                <option value="">Seleccionar...</option>
+                <option value="No">No</option>
+                <option value="Sí">Sí</option>
+              </select>
+            </div>
+            <div class="field conditional" data-show-when="incluye_alimentos=Sí" style="display:none;">
+              <label for="porcentaje_pension">Porcentaje de pensión</label>
+              <input type="text" id="porcentaje_pension" name="porcentaje_pension" placeholder="Ej: 35">
+            </div>
+            <div class="field conditional" data-show-when="incluye_alimentos=Sí" style="display:none;">
+              <label for="porcentaje_pension_letra">Porcentaje en letra</label>
+              <input type="text" id="porcentaje_pension_letra" name="porcentaje_pension_letra" placeholder="Ej: TREINTA Y CINCO">
+            </div>
+            <div class="field md:col-span-2">
+              <label for="incluye_bloqueo_vehicular">¿Incluye bloqueo vehicular?</label>
+              <select id="incluye_bloqueo_vehicular" name="incluye_bloqueo_vehicular">
+                <option value="No">No</option>
+                <option value="Sí">Sí</option>
+              </select>
+            </div>
+            <div class="field conditional" data-show-when="incluye_bloqueo_vehicular=Sí" style="display:none;">
+              <label for="curp_demandado">CURP del demandado</label>
+              <input type="text" id="curp_demandado" name="curp_demandado" placeholder="CURP del demandado">
+            </div>
+            <div class="field conditional" data-show-when="incluye_bloqueo_vehicular=Sí" style="display:none;">
+              <label for="rfc_demandado">RFC del demandado</label>
+              <input type="text" id="rfc_demandado" name="rfc_demandado" placeholder="RFC del demandado">
+            </div>
+            <div class="field conditional" data-show-when="incluye_bloqueo_vehicular=Sí" style="display:none;">
+              <label for="fecha_nacimiento_demandado">Fecha nacimiento demandado</label>
+              <input type="text" id="fecha_nacimiento_demandado" name="fecha_nacimiento_demandado" placeholder="Fecha de nacimiento del demandado">
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- PASO 7: Pruebas -->
+      <section class="wizard-step" data-step="7">
+        <div class="card">
+          <h2 class="card-title">Pruebas y Jurisprudencia</h2>
+          <p class="card-desc">Documentales, testigos y búsqueda de jurisprudencia de apoyo.</p>
+          <div class="grid grid-cols-1 gap-5 mt-6">
+            <div class="field">
+              <label for="lista_documentales">Lista de documentales <span class="req">*</span></label>
+              <textarea id="lista_documentales" name="lista_documentales" rows="4" placeholder="Lista de documentos que se anexan como prueba, separados por salto de línea." required></textarea>
+            </div>
+            <div class="field">
+              <label for="tiene_testigos">¿Tiene testigos? <span class="req">*</span></label>
+              <select id="tiene_testigos" name="tiene_testigos" required>
+                <option value="">Seleccionar...</option>
+                <option value="No">No</option>
+                <option value="Sí">Sí</option>
+              </select>
+            </div>
+            <div class="field conditional" data-show-when="tiene_testigos=Sí" style="display:none;">
+              <label for="nombres_testigos">Nombres de los testigos</label>
+              <input type="text" id="nombres_testigos" name="nombres_testigos" placeholder="Ej: JUAN PÉREZ y MARÍA LÓPEZ">
+            </div>
+            <div class="field">
+              <label for="palabras_clave_jurisprudencia">Palabras clave para jurisprudencia</label>
+              <textarea id="palabras_clave_jurisprudencia" name="palabras_clave_jurisprudencia" rows="2" placeholder="Ej: abandono de menores, incumplimiento alimentario, violencia familiar"></textarea>
+              <p class="hint">Opcional. Agrega palabras clave para sustentar tu escrito con jurisprudencia relevante.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- PASO 8: Hechos y Envío -->
+      <section class="wizard-step" data-step="8">
+        <div class="card">
+          <h2 class="card-title">Hechos del Caso y Envío</h2>
+          <p class="card-desc">Narre los hechos y seleccione dónde recibir el documento generado.</p>
+          <div class="grid grid-cols-1 gap-5 mt-6">
+            <div class="field">
+              <label for="narrativa_hechos">Narrativa de los hechos <span class="req">*</span></label>
+              <textarea id="narrativa_hechos" name="narrativa_hechos" rows="6" placeholder="Describe los hechos del caso en texto libre. Sea lo más detallado posible." required></textarea>
+            </div>
+            <div class="field">
+              <label for="chat_id_telegram">Enviar documento a <span class="req">*</span></label>
+              <select id="chat_id_telegram" name="chat_id_telegram" required>
+                <option value="">Seleccionar destinatario...</option>
+                <option value="6295473990">Multi Agent</option>
+                <option value="1171270516">Veronica Garfias</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Resumen -->
+        <div class="card mt-4">
+          <h3 class="text-lg font-semibold text-primary-900 mb-3">Resumen del caso</h3>
+          <div id="summary" class="text-sm text-gray-700 space-y-1"></div>
+        </div>
+      </section>
+
+    </form>
+
+    <!-- Navigation Buttons -->
+    <div class="flex justify-between mt-6 mb-12">
+      <button id="btn-prev" class="btn-secondary hidden" type="button">Anterior</button>
+      <div class="flex-1"></div>
+      <button id="btn-next" class="btn-primary" type="button">Siguiente</button>
+      <button id="btn-submit" class="btn-submit hidden" type="button">Generar Escrito</button>
+    </div>
+
+    <!-- Loading overlay -->
+    <div id="loading-overlay" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-2xl p-8 shadow-2xl text-center max-w-sm mx-4">
+        <div class="spinner mx-auto mb-4"></div>
+        <h3 class="text-lg font-semibold text-primary-900">Generando escrito...</h3>
+        <p class="text-gray-500 text-sm mt-2">La IA está redactando tu documento. Esto puede tardar unos minutos.</p>
+      </div>
+    </div>
+
+    <!-- Success message -->
+    <div id="success-message" class="hidden max-w-4xl mx-auto px-4 py-12 text-center">
+      <div class="bg-green-50 border border-green-200 rounded-2xl p-8">
+        <div class="text-5xl mb-4">&#9989;</div>
+        <h3 class="text-xl font-bold text-green-800">Escrito enviado correctamente</h3>
+        <p class="text-green-600 mt-2">Recibirás el documento en Telegram en unos minutos.</p>
+        <button onclick="location.reload()" class="mt-6 btn-primary">Crear otro escrito</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-primary-900 text-primary-300 text-center text-xs py-4 mt-auto">
+    Abogado IA &mdash; Generador de Escritos Legales &copy; 2026
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
