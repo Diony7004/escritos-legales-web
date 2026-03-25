@@ -17,13 +17,16 @@ app.post('/api/submit', async (req, res) => {
       body: JSON.stringify(req.body),
     });
 
+    const text = await response.text();
+
     if (!response.ok) {
-      const text = await response.text();
       console.error('n8n respondió con error:', response.status, text);
-      return res.status(502).json({ error: 'Error al procesar en n8n', detail: text });
+      return res.status(502).json({ error: 'Error al procesar en n8n', detail: `Status ${response.status}: El webhook no respondió correctamente. Verifica que esté activo en n8n.` });
     }
 
-    const data = await response.text();
+    // Try to parse as JSON, fallback to text
+    let data;
+    try { data = JSON.parse(text); } catch { data = text; }
     res.json({ success: true, message: 'Escrito enviado correctamente', data });
   } catch (err) {
     console.error('Error conectando con n8n:', err.message);
