@@ -51,6 +51,8 @@
       <button id="step-7-dot" class="step-dot" data-step="7">7</button>
       <button id="step-8-dot" class="step-dot" data-step="8">8</button>
     </div>
+    <!-- Field progress -->
+    <div id="field-progress" class="text-xs text-gray-400 text-right mt-1"></div>
   </div>
 
   <!-- Form Container -->
@@ -77,15 +79,30 @@
             </div>
             <div class="field md:col-span-2">
               <label for="juzgado_destino">Juzgado destino <span class="req">*</span></label>
-              <input type="text" id="juzgado_destino" name="juzgado_destino" placeholder="Ej: JUZGADO QUINTO DE LO FAMILIAR DEL DISTRITO JUDICIAL DE QUERÉTARO" required>
+              <select id="juzgado_selector" name="juzgado_selector">
+                <option value="">Seleccionar juzgado...</option>
+                <option value="JUZGADO PRIMERO DE LO FAMILIAR DEL DISTRITO JUDICIAL DE QUERÉTARO">Juzgado Primero Familiar - Querétaro</option>
+                <option value="JUZGADO SEGUNDO DE LO FAMILIAR DEL DISTRITO JUDICIAL DE QUERÉTARO">Juzgado Segundo Familiar - Querétaro</option>
+                <option value="JUZGADO TERCERO DE LO FAMILIAR DEL DISTRITO JUDICIAL DE QUERÉTARO">Juzgado Tercero Familiar - Querétaro</option>
+                <option value="JUZGADO CUARTO DE LO FAMILIAR DEL DISTRITO JUDICIAL DE QUERÉTARO">Juzgado Cuarto Familiar - Querétaro</option>
+                <option value="JUZGADO QUINTO DE LO FAMILIAR DEL DISTRITO JUDICIAL DE QUERÉTARO">Juzgado Quinto Familiar - Querétaro</option>
+                <option value="JUZGADO DE LO FAMILIAR DEL DISTRITO JUDICIAL DE SAN JUAN DEL RÍO">Juzgado Familiar - San Juan del Río</option>
+                <option value="JUZGADO DE LO FAMILIAR DEL DISTRITO JUDICIAL DE CADEREYTA">Juzgado Familiar - Cadereyta</option>
+                <option value="otro">Otro (escribir manualmente)</option>
+              </select>
+              <input type="text" id="juzgado_destino" name="juzgado_destino" placeholder="Ej: JUZGADO QUINTO DE LO FAMILIAR DEL DISTRITO JUDICIAL DE QUERÉTARO" required class="hidden mt-2">
             </div>
             <div class="field">
               <label for="numero_expediente">Número de expediente</label>
               <input type="text" id="numero_expediente" name="numero_expediente" placeholder="Ej: 1353/25 (vacío si es nuevo)">
             </div>
-            <div class="field">
-              <label for="fracciones_aplicables">Fracciones aplicables <span class="req">*</span></label>
-              <input type="text" id="fracciones_aplicables" name="fracciones_aplicables" placeholder="Ej: I,II,III (Art 440 o Art 443)" required>
+            <!-- Fracciones dinámicas -->
+            <div class="field md:col-span-2">
+              <label>Fracciones aplicables <span class="req">*</span></label>
+              <div id="fracciones-container" class="fracciones-box">
+                <p class="text-sm text-gray-400 italic">Seleccione primero el tipo de juicio para ver las fracciones disponibles.</p>
+              </div>
+              <input type="hidden" id="fracciones_aplicables" name="fracciones_aplicables" required>
             </div>
           </div>
         </div>
@@ -99,7 +116,7 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-6">
             <div class="field">
               <label for="nombre_actor">Nombre del actor <span class="req">*</span></label>
-              <input type="text" id="nombre_actor" name="nombre_actor" placeholder="Ej: LAURA LUNA RODRÍGUEZ" required>
+              <input type="text" id="nombre_actor" name="nombre_actor" placeholder="Ej: LAURA LUNA RODRÍGUEZ" required class="auto-uppercase">
             </div>
             <div class="field">
               <label for="calidad_actor">Calidad del actor <span class="req">*</span></label>
@@ -113,11 +130,17 @@
             </div>
             <div class="field md:col-span-2">
               <label for="domicilio_actor">Domicilio habitual del actor <span class="req">*</span></label>
-              <textarea id="domicilio_actor" name="domicilio_actor" rows="2" placeholder="Calle, número, colonia, ciudad, estado" required></textarea>
+              <div class="field-with-ai">
+                <textarea id="domicilio_actor" name="domicilio_actor" rows="2" placeholder="Calle, número exterior e interior, colonia, código postal, municipio, estado" required spellcheck="true"></textarea>
+                <button type="button" class="btn-ai-check" data-field="domicilio_actor" title="Revisar redacción con IA">&#9998;</button>
+              </div>
             </div>
             <div class="field md:col-span-2">
               <label for="domicilio_procesal">Domicilio procesal <span class="req">*</span></label>
-              <textarea id="domicilio_procesal" name="domicilio_procesal" rows="2" placeholder="Domicilio del despacho para notificaciones" required></textarea>
+              <div class="field-with-ai">
+                <textarea id="domicilio_procesal" name="domicilio_procesal" rows="2" placeholder="Domicilio del despacho para notificaciones" required spellcheck="true"></textarea>
+                <button type="button" class="btn-ai-check" data-field="domicilio_procesal" title="Revisar redacción con IA">&#9998;</button>
+              </div>
             </div>
           </div>
         </div>
@@ -131,7 +154,7 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-6">
             <div class="field">
               <label for="nombre_demandado">Nombre del demandado <span class="req">*</span></label>
-              <input type="text" id="nombre_demandado" name="nombre_demandado" placeholder="Ej: JONNATAN RODRÍGUEZ HERNÁNDEZ" required>
+              <input type="text" id="nombre_demandado" name="nombre_demandado" placeholder="Ej: JONNATAN RODRÍGUEZ HERNÁNDEZ" required class="auto-uppercase">
             </div>
             <div class="field">
               <label for="genero_demandado">Género del demandado <span class="req">*</span></label>
@@ -155,11 +178,14 @@
             </div>
             <div class="field md:col-span-2">
               <label for="domicilio_demandado">Domicilio del demandado <span class="req">*</span></label>
-              <textarea id="domicilio_demandado" name="domicilio_demandado" rows="2" placeholder="Dirección completa para emplazamiento" required></textarea>
+              <div class="field-with-ai">
+                <textarea id="domicilio_demandado" name="domicilio_demandado" rows="2" placeholder="Dirección completa para emplazamiento" required spellcheck="true"></textarea>
+                <button type="button" class="btn-ai-check" data-field="domicilio_demandado" title="Revisar redacción con IA">&#9998;</button>
+              </div>
             </div>
             <div class="field md:col-span-2">
               <label for="domicilio_empresa_demandado">Domicilio de la empresa</label>
-              <textarea id="domicilio_empresa_demandado" name="domicilio_empresa_demandado" rows="2" placeholder="Dirección de la empresa (si aplica)"></textarea>
+              <textarea id="domicilio_empresa_demandado" name="domicilio_empresa_demandado" rows="2" placeholder="Dirección de la empresa (si aplica)" spellcheck="true"></textarea>
             </div>
             <div class="field">
               <label for="puesto_demandado">Puesto del demandado</label>
@@ -167,59 +193,26 @@
             </div>
             <div class="field">
               <label for="sueldo_demandado">Sueldo del demandado</label>
-              <input type="text" id="sueldo_demandado" name="sueldo_demandado" placeholder="Ej: $20,629.94 (veinte mil...)">
+              <input type="text" id="sueldo_demandado" name="sueldo_demandado" placeholder="Ej: 20629.94" class="auto-sueldo">
+              <p class="hint sueldo-preview"></p>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- PASO 4: Datos del Menor -->
+      <!-- PASO 4: Datos de los Menores (DINÁMICO) -->
       <section class="wizard-step" data-step="4">
         <div class="card">
-          <h2 class="card-title">Datos del Menor</h2>
-          <p class="card-desc">Información del menor involucrado en el procedimiento.</p>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-6">
-            <div class="field">
-              <label for="nombre_menor">Nombre del menor <span class="req">*</span></label>
-              <input type="text" id="nombre_menor" name="nombre_menor" placeholder="Nombre completo del menor" required>
-            </div>
-            <div class="field">
-              <label for="apellidos_menor">Apellidos del menor <span class="req">*</span></label>
-              <input type="text" id="apellidos_menor" name="apellidos_menor" placeholder="Apellido paterno y materno" required>
-            </div>
-            <div class="field">
-              <label for="iniciales_menor">Iniciales del menor <span class="req">*</span></label>
-              <input type="text" id="iniciales_menor" name="iniciales_menor" placeholder="Ej: L.L.R.L.">
-            </div>
-            <div class="field">
-              <label for="genero_menor">Género del menor <span class="req">*</span></label>
-              <select id="genero_menor" name="genero_menor" required>
-                <option value="">Seleccionar...</option>
-                <option value="hijo">Hijo</option>
-                <option value="hija">Hija</option>
-              </select>
-            </div>
-            <div class="field">
-              <label for="fecha_nacimiento_menor">Fecha de nacimiento <span class="req">*</span></label>
-              <input type="text" id="fecha_nacimiento_menor" name="fecha_nacimiento_menor" placeholder="Ej: 2 de febrero de 2021" required>
-            </div>
-            <div class="field">
-              <label for="edad_menor">Edad del menor <span class="req">*</span></label>
-              <input type="text" id="edad_menor" name="edad_menor" placeholder="Ej: 5 años" required>
-            </div>
-            <div class="field">
-              <label for="escuela_menor">Escuela del menor</label>
-              <input type="text" id="escuela_menor" name="escuela_menor" placeholder="Nombre de escuela o guardería">
-            </div>
-            <div class="field">
-              <label for="documento_identidad_menor">Documento de identidad <span class="req">*</span></label>
-              <select id="documento_identidad_menor" name="documento_identidad_menor" required>
-                <option value="">Seleccionar...</option>
-                <option value="Copia certificada del acta de nacimiento">Copia certificada del acta de nacimiento</option>
-                <option value="Pasaporte">Pasaporte</option>
-                <option value="Constancia Escolar">Constancia Escolar</option>
-              </select>
-            </div>
+          <h2 class="card-title">Datos de los Menores</h2>
+          <p class="card-desc">Información de los menores involucrados en el procedimiento. Puede agregar hasta 10 menores.</p>
+
+          <div id="menores-container">
+            <!-- Se genera dinámicamente desde app.js -->
+          </div>
+
+          <div class="flex items-center gap-3 mt-4">
+            <button type="button" id="btn-add-menor" class="btn-add-menor">+ Agregar otro menor</button>
+            <span id="menores-count" class="text-sm text-gray-400"></span>
           </div>
         </div>
       </section>
@@ -232,11 +225,17 @@
           <div class="grid grid-cols-1 gap-5 mt-6">
             <div class="field">
               <label for="abogados_autorizados">Abogados autorizados <span class="req">*</span></label>
-              <textarea id="abogados_autorizados" name="abogados_autorizados" rows="3" placeholder="LIC. NOMBRE, con Cédula Profesional número XXXX, inscrita en el TSJ bajo el Folio número XXX; y/o LIC. NOMBRE2..." required></textarea>
+              <div class="flex gap-2 mb-1">
+                <button type="button" id="btn-template-abogado" class="btn-template" title="Insertar plantilla">Usar plantilla</button>
+              </div>
+              <div class="field-with-ai">
+                <textarea id="abogados_autorizados" name="abogados_autorizados" rows="4" placeholder="LIC. NOMBRE, con Cédula Profesional número XXXX, inscrita en el TSJ bajo el Folio número XXX; y/o LIC. NOMBRE2..." required spellcheck="true"></textarea>
+                <button type="button" class="btn-ai-check" data-field="abogados_autorizados" title="Revisar redacción con IA">&#9998;</button>
+              </div>
             </div>
             <div class="field">
               <label for="persona_autorizada_notificaciones">Persona autorizada para notificaciones</label>
-              <input type="text" id="persona_autorizada_notificaciones" name="persona_autorizada_notificaciones" placeholder="Nombre de persona adicional autorizada">
+              <input type="text" id="persona_autorizada_notificaciones" name="persona_autorizada_notificaciones" placeholder="Nombre de persona adicional autorizada" class="auto-uppercase">
             </div>
             <div class="field">
               <label for="tiene_procedimiento_previo">¿Tiene procedimiento previo? <span class="req">*</span></label>
@@ -248,7 +247,10 @@
             </div>
             <div class="field conditional" data-show-when="tiene_procedimiento_previo=Sí" style="display:none;">
               <label for="texto_procedimiento_previo">Texto del procedimiento previo</label>
-              <textarea id="texto_procedimiento_previo" name="texto_procedimiento_previo" rows="3" placeholder="Ej: existe procedimiento 351/23 radicado en el Juzgado Segundo Familiar..."></textarea>
+              <div class="field-with-ai">
+                <textarea id="texto_procedimiento_previo" name="texto_procedimiento_previo" rows="3" placeholder="Ej: existe procedimiento 351/23 radicado en el Juzgado Segundo Familiar..." spellcheck="true"></textarea>
+                <button type="button" class="btn-ai-check" data-field="texto_procedimiento_previo" title="Revisar redacción con IA">&#9998;</button>
+              </div>
             </div>
           </div>
         </div>
@@ -279,10 +281,11 @@
             <div class="field conditional" data-show-when="incluye_alimentos=Sí" style="display:none;">
               <label for="porcentaje_pension">Porcentaje de pensión</label>
               <input type="text" id="porcentaje_pension" name="porcentaje_pension" placeholder="Ej: 35">
+              <p class="hint pension-letra-preview"></p>
             </div>
             <div class="field conditional" data-show-when="incluye_alimentos=Sí" style="display:none;">
               <label for="porcentaje_pension_letra">Porcentaje en letra</label>
-              <input type="text" id="porcentaje_pension_letra" name="porcentaje_pension_letra" placeholder="Ej: TREINTA Y CINCO">
+              <input type="text" id="porcentaje_pension_letra" name="porcentaje_pension_letra" placeholder="Se calcula automáticamente" readonly class="bg-gray-100">
             </div>
             <div class="field md:col-span-2">
               <label for="incluye_bloqueo_vehicular">¿Incluye bloqueo vehicular?</label>
@@ -293,15 +296,17 @@
             </div>
             <div class="field conditional" data-show-when="incluye_bloqueo_vehicular=Sí" style="display:none;">
               <label for="curp_demandado">CURP del demandado</label>
-              <input type="text" id="curp_demandado" name="curp_demandado" placeholder="CURP del demandado">
+              <input type="text" id="curp_demandado" name="curp_demandado" placeholder="18 caracteres" maxlength="18" class="auto-uppercase">
+              <p class="hint curp-validation-hint"></p>
             </div>
             <div class="field conditional" data-show-when="incluye_bloqueo_vehicular=Sí" style="display:none;">
               <label for="rfc_demandado">RFC del demandado</label>
-              <input type="text" id="rfc_demandado" name="rfc_demandado" placeholder="RFC del demandado">
+              <input type="text" id="rfc_demandado" name="rfc_demandado" placeholder="13 caracteres" maxlength="13" class="auto-uppercase">
+              <p class="hint rfc-validation-hint"></p>
             </div>
             <div class="field conditional" data-show-when="incluye_bloqueo_vehicular=Sí" style="display:none;">
               <label for="fecha_nacimiento_demandado">Fecha nacimiento demandado</label>
-              <input type="text" id="fecha_nacimiento_demandado" name="fecha_nacimiento_demandado" placeholder="Fecha de nacimiento del demandado">
+              <input type="text" id="fecha_nacimiento_demandado" name="fecha_nacimiento_demandado" placeholder="Ej: 15 de agosto de 1990">
             </div>
           </div>
         </div>
@@ -315,7 +320,10 @@
           <div class="grid grid-cols-1 gap-5 mt-6">
             <div class="field">
               <label for="lista_documentales">Lista de documentales <span class="req">*</span></label>
-              <textarea id="lista_documentales" name="lista_documentales" rows="4" placeholder="Lista de documentos que se anexan como prueba, separados por salto de línea." required></textarea>
+              <div class="field-with-ai">
+                <textarea id="lista_documentales" name="lista_documentales" rows="4" placeholder="Lista de documentos que se anexan como prueba, separados por salto de línea." required spellcheck="true"></textarea>
+                <button type="button" class="btn-ai-check" data-field="lista_documentales" title="Revisar redacción con IA">&#9998;</button>
+              </div>
             </div>
             <div class="field">
               <label for="tiene_testigos">¿Tiene testigos? <span class="req">*</span></label>
@@ -327,11 +335,11 @@
             </div>
             <div class="field conditional" data-show-when="tiene_testigos=Sí" style="display:none;">
               <label for="nombres_testigos">Nombres de los testigos</label>
-              <input type="text" id="nombres_testigos" name="nombres_testigos" placeholder="Ej: JUAN PÉREZ y MARÍA LÓPEZ">
+              <input type="text" id="nombres_testigos" name="nombres_testigos" placeholder="Ej: JUAN PÉREZ y MARÍA LÓPEZ" class="auto-uppercase">
             </div>
             <div class="field">
               <label for="palabras_clave_jurisprudencia">Palabras clave para jurisprudencia</label>
-              <textarea id="palabras_clave_jurisprudencia" name="palabras_clave_jurisprudencia" rows="2" placeholder="Ej: abandono de menores, incumplimiento alimentario, violencia familiar"></textarea>
+              <textarea id="palabras_clave_jurisprudencia" name="palabras_clave_jurisprudencia" rows="2" placeholder="Ej: abandono de menores, incumplimiento alimentario, violencia familiar" spellcheck="true"></textarea>
               <p class="hint">Opcional. Agrega palabras clave para sustentar tu escrito con jurisprudencia relevante.</p>
             </div>
           </div>
@@ -346,7 +354,10 @@
           <div class="grid grid-cols-1 gap-5 mt-6">
             <div class="field">
               <label for="narrativa_hechos">Narrativa de los hechos <span class="req">*</span></label>
-              <textarea id="narrativa_hechos" name="narrativa_hechos" rows="6" placeholder="Describe los hechos del caso en texto libre. Sea lo más detallado posible." required></textarea>
+              <div class="field-with-ai">
+                <textarea id="narrativa_hechos" name="narrativa_hechos" rows="6" placeholder="Describe los hechos del caso en texto libre. Sea lo más detallado posible." required spellcheck="true"></textarea>
+                <button type="button" class="btn-ai-check" data-field="narrativa_hechos" title="Revisar redacción con IA">&#9998;</button>
+              </div>
             </div>
             <div class="field">
               <label for="chat_id_telegram">Enviar documento a <span class="req">*</span></label>
@@ -376,24 +387,68 @@
       <button id="btn-submit" class="btn-submit hidden" type="button">Generar Escrito</button>
     </div>
 
-    <!-- Loading overlay -->
+    <!-- Loading overlay (async) -->
     <div id="loading-overlay" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div class="bg-white rounded-2xl p-8 shadow-2xl text-center max-w-sm mx-4">
+      <div class="bg-white rounded-2xl p-8 shadow-2xl text-center max-w-md mx-4">
         <div class="spinner mx-auto mb-4"></div>
-        <h3 class="text-lg font-semibold text-primary-900">Generando escrito...</h3>
-        <p class="text-gray-500 text-sm mt-2">La IA está redactando tu documento. Esto puede tardar unos minutos.</p>
+        <h3 class="text-lg font-semibold text-primary-900">Enviando escrito a procesamiento...</h3>
+        <p class="text-gray-500 text-sm mt-2">Estamos validando y enviando tus datos. Un momento por favor.</p>
       </div>
     </div>
 
-    <!-- Success message -->
+    <!-- Success message (async) -->
     <div id="success-message" class="hidden max-w-4xl mx-auto px-4 py-12 text-center">
       <div class="bg-green-50 border border-green-200 rounded-2xl p-8">
         <div class="text-5xl mb-4">&#9989;</div>
-        <h3 class="text-xl font-bold text-green-800">Escrito enviado correctamente</h3>
-        <p class="text-green-600 mt-2">Recibirás el documento en Telegram en unos minutos.</p>
+        <h3 class="text-xl font-bold text-green-800">Escrito enviado a procesamiento</h3>
+        <p class="text-green-700 mt-3 text-base">Tu escrito se está generando con Inteligencia Artificial.</p>
+        <div class="bg-green-100 rounded-lg p-4 mt-4 text-left">
+          <p class="text-green-800 text-sm"><strong>Tiempo estimado:</strong> 3 a 5 minutos</p>
+          <p class="text-green-800 text-sm mt-1"><strong>Entrega:</strong> Recibirás el documento Word (.doc) en tu bot de Telegram.</p>
+          <p class="text-green-800 text-sm mt-1"><strong>Nota:</strong> Puedes cerrar esta página. El proceso continúa en segundo plano.</p>
+        </div>
         <button onclick="location.reload()" class="mt-6 btn-primary">Crear otro escrito</button>
       </div>
     </div>
+
+    <!-- Error message -->
+    <div id="error-message" class="hidden max-w-4xl mx-auto px-4 py-12 text-center">
+      <div class="bg-red-50 border border-red-200 rounded-2xl p-8">
+        <div class="text-5xl mb-4">&#10060;</div>
+        <h3 class="text-xl font-bold text-red-800">Error al enviar el escrito</h3>
+        <p id="error-detail" class="text-red-600 mt-2"></p>
+        <div class="bg-red-100 rounded-lg p-4 mt-4 text-left">
+          <p class="text-red-800 text-sm"><strong>¿Qué hacer?</strong> Verifica tu conexión a internet e inténtalo de nuevo. Si el error persiste, contacta al administrador.</p>
+        </div>
+        <div class="flex gap-3 justify-center mt-6">
+          <button onclick="location.reload()" class="btn-secondary">Reiniciar formulario</button>
+          <button id="btn-retry" class="btn-primary">Reintentar envío</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI suggestion panel (reused for all fields) -->
+    <div id="ai-suggestion-panel" class="hidden fixed inset-0 bg-black/30 flex items-center justify-center z-50">
+      <div class="bg-white rounded-2xl p-6 shadow-2xl max-w-lg mx-4 w-full">
+        <div class="flex justify-between items-center mb-3">
+          <h4 class="font-semibold text-primary-900">Revisión de redacción</h4>
+          <button type="button" id="ai-panel-close" class="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+        </div>
+        <div id="ai-suggestion-loading" class="text-center py-6">
+          <div class="spinner-small mx-auto mb-2"></div>
+          <p class="text-sm text-gray-500">Revisando con IA...</p>
+        </div>
+        <div id="ai-suggestion-content" class="hidden">
+          <div id="ai-suggestion-text" class="text-sm text-gray-700 bg-gray-50 rounded-lg p-4 max-h-60 overflow-y-auto"></div>
+          <div class="flex gap-2 mt-4 justify-end">
+            <button type="button" id="ai-suggestion-dismiss" class="btn-secondary text-sm">Ignorar</button>
+            <button type="button" id="ai-suggestion-apply" class="btn-primary text-sm">Aplicar sugerencia</button>
+          </div>
+        </div>
+        <div id="ai-suggestion-error" class="hidden text-sm text-red-600 py-4"></div>
+      </div>
+    </div>
+
   </main>
 
   <!-- Footer -->

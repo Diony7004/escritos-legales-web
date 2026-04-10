@@ -1,7 +1,10 @@
-// ===== Abogado IA - Wizard Logic =====
+// ===== Abogado IA - Wizard Logic v2.0 =====
 
 const TOTAL_STEPS = 8;
 let currentStep = 1;
+let menoresCount = 0;
+const MAX_MENORES = 10;
+let lastPayload = null; // for retry
 
 const STEP_TITLES = {
   1: 'Tipo de Juicio',
@@ -12,6 +15,35 @@ const STEP_TITLES = {
   6: 'Prestaciones',
   7: 'Pruebas',
   8: 'Hechos y Envío',
+};
+
+// ===== Fracciones data =====
+const FRACCIONES = {
+  'Pérdida de Patria Potestad': {
+    articulo: '440',
+    codigo: 'CCQ',
+    items: [
+      { num: 'I', desc: 'Condena expresa a la pérdida de patria potestad' },
+      { num: 'II', desc: 'En los casos de divorcio, según resolución judicial' },
+      { num: 'III', desc: 'Costumbres depravadas, malos tratos o abandono de deberes' },
+      { num: 'IV', desc: 'Exposición que se hiciere de los hijos' },
+      { num: 'V', desc: 'Abandono de los hijos por más de tres meses sin causa justificada' },
+      { num: 'VI', desc: 'Condena por delito doloso en perjuicio de los hijos' },
+      { num: 'VII', desc: 'Declaración de estado de interdicción' },
+      { num: 'VIII', desc: 'Incumplimiento injustificado de obligación alimentaria por más de 90 días' },
+      { num: 'IX', desc: 'Incumplimiento de obligación alimentaria por menos de 90 días sin causa justificada' },
+      { num: 'X', desc: 'Demás casos que la ley expresamente establezca' },
+    ],
+  },
+  'Suspensión de Patria Potestad': {
+    articulo: '443',
+    codigo: 'CCQ',
+    items: [
+      { num: 'I', desc: 'Incapacidad declarada judicialmente (interdicción)' },
+      { num: 'II', desc: 'Ausencia declarada judicialmente' },
+      { num: 'III', desc: 'Sentencia condenatoria que imponga pena privativa de libertad' },
+    ],
+  },
 };
 
 // Field labels for summary
@@ -33,14 +65,6 @@ const FIELD_LABELS = {
   domicilio_empresa_demandado: 'Dom. empresa',
   puesto_demandado: 'Puesto',
   sueldo_demandado: 'Sueldo',
-  nombre_menor: 'Nombre menor',
-  apellidos_menor: 'Apellidos menor',
-  iniciales_menor: 'Iniciales',
-  genero_menor: 'Género menor',
-  fecha_nacimiento_menor: 'Fecha nac. menor',
-  edad_menor: 'Edad menor',
-  escuela_menor: 'Escuela',
-  documento_identidad_menor: 'Doc. identidad',
   abogados_autorizados: 'Abogados',
   persona_autorizada_notificaciones: 'Pers. autorizada',
   tiene_procedimiento_previo: 'Proc. previo',
@@ -61,7 +85,6 @@ const FIELD_LABELS = {
   chat_id_telegram: 'Enviar a',
 };
 
-// Telegram contacts for summary display
 const TELEGRAM_CONTACTS = {
   '6295473990': 'Multi Agent',
   '1171270516': 'Veronica Garfias',
@@ -77,22 +100,530 @@ const stepLabel = document.getElementById('step-label');
 const stepTitle = document.getElementById('step-title');
 const loadingOverlay = document.getElementById('loading-overlay');
 const successMessage = document.getElementById('success-message');
+const errorMessage = document.getElementById('error-message');
+const fieldProgress = document.getElementById('field-progress');
 
-// ===== Navigation =====
+// ============================================================
+//  NUMBER TO SPANISH WORDS (for sueldo & pension)
+// ============================================================
+function numberToSpanish(n) {
+  if (n === 0) return 'cero';
+  if (n < 0) return 'menos ' + numberToSpanish(-n);
+
+  const units = ['', 'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve',
+    'diez', 'once', 'doce', 'trece', 'catorce', 'quince', 'dieciséis', 'diecisiete', 'dieciocho', 'diecinueve', 'veinte'];
+  const tens = ['', '', 'veinti', 'treinta', 'cuarenta', 'cincuenta', 'sesenta', 'setenta', 'ochenta', 'noventa'];
+  const hundreds = ['', 'ciento', 'doscientos', 'trescientos', 'cuatrocientos', 'quinientos', 'seiscientos', 'setecientos', 'ochocientos', 'novecientos'];
+
+  function chunk(num) {
+    if (num === 0) return '';
+    if (num <= 20) return units[num];
+    if (num < 30) return 'veinti' + units[num - 20];
+    if (num < 100) {
+      const t = Math.floor(num / 10);
+      const u = num % 10;
+      return u === 0 ? tens[t] : tens[t] + ' y ' + units[u];
+    }
+    if (num === 100) return 'cien';
+    if (num < 1000) {
+      const h = Math.floor(num / 100);
+      const rest = num % 100;
+      return hundreds[h] + (rest > 0 ? ' ' + chunk(rest) : '');
+    }
+    if (num < 1000000) {
+      const miles = Math.floor(num / 1000);
+      const rest = num % 1000;
+      const milesStr = miles === 1 ? 'mil' : chunk(miles) + ' mil';
+      return milesStr + (rest > 0 ? ' ' + chunk(rest) : '');
+    }
+    if (num < 1000000000) {
+      const millones = Math.floor(num / 1000000);
+      const rest = num % 1000000;
+      const millStr = millones === 1 ? 'un millón' : chunk(millones) + ' millones';
+      return millStr + (rest > 0 ? ' ' + chunk(rest) : '');
+    }
+    return String(num);
+  }
+
+  return chunk(Math.floor(n));
+}
+
+function formatSueldo(rawValue) {
+  const cleaned = rawValue.replace(/[^0-9.]/g, '');
+  if (!cleaned) return null;
+  const num = parseFloat(cleaned);
+  if (isNaN(num)) return null;
+
+  const entero = Math.floor(num);
+  const centavos = Math.round((num - entero) * 100);
+  const formatted = '$' + entero.toLocaleString('es-MX') + '.' + String(centavos).padStart(2, '0');
+  const letra = numberToSpanish(entero);
+  const centavosStr = String(centavos).padStart(2, '0');
+
+  return {
+    formatted,
+    fullText: `${formatted} (${letra} pesos ${centavosStr}/100 m.n.)`,
+  };
+}
+
+// ============================================================
+//  CURP / RFC VALIDATION
+// ============================================================
+const CURP_REGEX = /^[A-Z]{4}\d{6}[HM][A-Z]{5}[A-Z0-9]\d$/;
+const RFC_REGEX = /^[A-ZÑ&]{4}\d{6}[A-Z0-9]{3}$/;
+
+function validateCURP(curp, nombre, fechaNac) {
+  const issues = [];
+  if (curp.length !== 18) { issues.push('Debe tener 18 caracteres'); return issues; }
+  if (!CURP_REGEX.test(curp)) issues.push('Formato inválido');
+
+  if (nombre && curp.length >= 4) {
+    const parts = nombre.trim().toUpperCase().split(/\s+/);
+    if (parts.length >= 3) {
+      const apPaterno = parts[parts.length - 2] || '';
+      const apMaterno = parts[parts.length - 1] || '';
+      const nom = parts[0] || '';
+      const expectedFirst = (apPaterno[0] || '') + getFirstVowel(apPaterno) + (apMaterno[0] || '') + (nom[0] || '');
+      if (expectedFirst && curp.substring(0, 4) !== expectedFirst) {
+        issues.push(`Letras iniciales no coinciden con el nombre (esperado: ${expectedFirst})`);
+      }
+    }
+  }
+
+  if (fechaNac && curp.length >= 10) {
+    const datePart = curp.substring(4, 10);
+    const parsed = parseFechaTexto(fechaNac);
+    if (parsed) {
+      const yy = String(parsed.year).slice(-2).padStart(2, '0');
+      const mm = String(parsed.month).padStart(2, '0');
+      const dd = String(parsed.day).padStart(2, '0');
+      const expected = yy + mm + dd;
+      if (datePart !== expected) issues.push(`Fecha no coincide (CURP: ${datePart}, esperado: ${expected})`);
+    }
+  }
+  return issues;
+}
+
+function validateRFC(rfc, nombre, fechaNac) {
+  const issues = [];
+  if (rfc.length !== 13) { issues.push('Debe tener 13 caracteres (persona física)'); return issues; }
+  if (!RFC_REGEX.test(rfc)) issues.push('Formato inválido');
+
+  if (fechaNac && rfc.length >= 10) {
+    const datePart = rfc.substring(4, 10);
+    const parsed = parseFechaTexto(fechaNac);
+    if (parsed) {
+      const yy = String(parsed.year).slice(-2).padStart(2, '0');
+      const mm = String(parsed.month).padStart(2, '0');
+      const dd = String(parsed.day).padStart(2, '0');
+      const expected = yy + mm + dd;
+      if (datePart !== expected) issues.push(`Fecha no coincide (RFC: ${datePart}, esperado: ${expected})`);
+    }
+  }
+  return issues;
+}
+
+function getFirstVowel(str) {
+  const vowels = 'AEIOU';
+  for (let i = 1; i < str.length; i++) {
+    if (vowels.includes(str[i])) return str[i];
+  }
+  return 'X';
+}
+
+// ============================================================
+//  DATE PARSING & AGE CALCULATION
+// ============================================================
+const MESES = {
+  enero: 1, febrero: 2, marzo: 3, abril: 4, mayo: 5, junio: 6,
+  julio: 7, agosto: 8, septiembre: 9, octubre: 10, noviembre: 11, diciembre: 12,
+};
+
+function parseFechaTexto(texto) {
+  if (!texto) return null;
+  const t = texto.toLowerCase().trim();
+  // "15 de agosto de 2019" or "15 de Agosto de 2019"
+  const match = t.match(/(\d{1,2})\s+de\s+(\w+)\s+de\s+(\d{4})/);
+  if (!match) return null;
+  const day = parseInt(match[1]);
+  const month = MESES[match[2].toLowerCase()];
+  const year = parseInt(match[3]);
+  if (!month || !day || !year) return null;
+  return { day, month, year };
+}
+
+function calcularEdad(fechaNacTexto) {
+  const parsed = parseFechaTexto(fechaNacTexto);
+  if (!parsed) return null;
+  const birth = new Date(parsed.year, parsed.month - 1, parsed.day);
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const m = today.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+  return age >= 0 ? age : null;
+}
+
+// ============================================================
+//  INITIALS GENERATION
+// ============================================================
+function generarIniciales(nombre, apellidos) {
+  if (!nombre || !apellidos) return '';
+  const parts = [...nombre.trim().split(/\s+/), ...apellidos.trim().split(/\s+/)];
+  return parts.filter(p => p.length > 0).map(p => p[0].toUpperCase() + '.').join('');
+}
+
+// ============================================================
+//  DYNAMIC MINORS
+// ============================================================
+function createMenorCard(index) {
+  const div = document.createElement('div');
+  div.className = 'menor-card';
+  div.dataset.menorIndex = index;
+  div.innerHTML = `
+    <div class="menor-header">
+      <span class="menor-title">Menor ${index}</span>
+      ${index > 1 ? `<button type="button" class="btn-remove-menor" data-remove="${index}" title="Quitar menor">&times;</button>` : ''}
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="field">
+        <label>Nombre del menor <span class="req">*</span></label>
+        <input type="text" name="menor_${index}_nombre" placeholder="Nombre completo" required class="auto-uppercase menor-nombre" data-menor="${index}">
+      </div>
+      <div class="field">
+        <label>Apellidos del menor <span class="req">*</span></label>
+        <input type="text" name="menor_${index}_apellidos" placeholder="Apellido paterno y materno" required class="auto-uppercase menor-apellidos" data-menor="${index}">
+      </div>
+      <div class="field">
+        <label>Iniciales del menor <span class="req">*</span></label>
+        <input type="text" name="menor_${index}_iniciales" placeholder="Se calcula automáticamente" required class="menor-iniciales bg-gray-100" data-menor="${index}" readonly>
+        <p class="hint">Generadas desde nombre y apellidos</p>
+      </div>
+      <div class="field">
+        <label>Género del menor <span class="req">*</span></label>
+        <select name="menor_${index}_genero" required>
+          <option value="">Seleccionar...</option>
+          <option value="hijo">Hijo</option>
+          <option value="hija">Hija</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Fecha de nacimiento <span class="req">*</span></label>
+        <input type="text" name="menor_${index}_fecha_nacimiento" placeholder="Ej: 2 de febrero de 2021" required class="menor-fecha-nac" data-menor="${index}">
+      </div>
+      <div class="field">
+        <label>Edad del menor <span class="req">*</span></label>
+        <input type="text" name="menor_${index}_edad" placeholder="Se calcula automáticamente" required class="menor-edad bg-gray-100" data-menor="${index}" readonly>
+        <p class="hint edad-hint" data-menor="${index}"></p>
+      </div>
+      <div class="field">
+        <label>Escuela del menor</label>
+        <input type="text" name="menor_${index}_escuela" placeholder="Nombre de escuela o guardería">
+      </div>
+      <div class="field">
+        <label>Documento de identidad <span class="req">*</span></label>
+        <select name="menor_${index}_documento_identidad" required>
+          <option value="">Seleccionar...</option>
+          <option value="Copia certificada del acta de nacimiento">Copia certificada del acta de nacimiento</option>
+          <option value="Pasaporte">Pasaporte</option>
+          <option value="Constancia Escolar">Constancia Escolar</option>
+        </select>
+      </div>
+    </div>
+  `;
+  return div;
+}
+
+function addMenor() {
+  if (menoresCount >= MAX_MENORES) return;
+  menoresCount++;
+  const container = document.getElementById('menores-container');
+  container.appendChild(createMenorCard(menoresCount));
+  updateMenoresCount();
+  setupMenorListeners(menoresCount);
+}
+
+function removeMenor(index) {
+  const card = document.querySelector(`.menor-card[data-menor-index="${index}"]`);
+  if (card) card.remove();
+  // Renumber remaining
+  menoresCount = 0;
+  const cards = document.querySelectorAll('.menor-card');
+  cards.forEach((card, i) => {
+    const newIdx = i + 1;
+    menoresCount = newIdx;
+    card.dataset.menorIndex = newIdx;
+    card.querySelector('.menor-title').textContent = `Menor ${newIdx}`;
+
+    // Update all field names and data attributes
+    card.querySelectorAll('[name]').forEach(field => {
+      field.name = field.name.replace(/menor_\d+_/, `menor_${newIdx}_`);
+    });
+    card.querySelectorAll('[data-menor]').forEach(el => {
+      el.dataset.menor = newIdx;
+    });
+    card.querySelectorAll('[data-remove]').forEach(btn => {
+      btn.dataset.remove = newIdx;
+    });
+
+    // Hide remove button on first minor
+    const removeBtn = card.querySelector('.btn-remove-menor');
+    if (removeBtn) {
+      removeBtn.style.display = newIdx === 1 ? 'none' : '';
+    }
+  });
+  updateMenoresCount();
+}
+
+function updateMenoresCount() {
+  const el = document.getElementById('menores-count');
+  el.textContent = `${menoresCount} de ${MAX_MENORES} menores`;
+  const addBtn = document.getElementById('btn-add-menor');
+  addBtn.disabled = menoresCount >= MAX_MENORES;
+  addBtn.style.opacity = menoresCount >= MAX_MENORES ? '0.5' : '1';
+}
+
+function setupMenorListeners(index) {
+  const card = document.querySelector(`.menor-card[data-menor-index="${index}"]`);
+  if (!card) return;
+
+  // Auto-initials from nombre + apellidos
+  const nombreInput = card.querySelector(`.menor-nombre[data-menor="${index}"]`);
+  const apellidosInput = card.querySelector(`.menor-apellidos[data-menor="${index}"]`);
+  const inicialesInput = card.querySelector(`.menor-iniciales[data-menor="${index}"]`);
+
+  function updateIniciales() {
+    const ini = generarIniciales(nombreInput.value, apellidosInput.value);
+    if (ini) inicialesInput.value = ini;
+  }
+  nombreInput.addEventListener('blur', updateIniciales);
+  apellidosInput.addEventListener('blur', updateIniciales);
+
+  // Auto-age from fecha_nacimiento
+  const fechaInput = card.querySelector(`.menor-fecha-nac[data-menor="${index}"]`);
+  const edadInput = card.querySelector(`.menor-edad[data-menor="${index}"]`);
+  const edadHint = card.querySelector(`.edad-hint[data-menor="${index}"]`);
+
+  fechaInput.addEventListener('blur', () => {
+    const edad = calcularEdad(fechaInput.value);
+    if (edad !== null) {
+      edadInput.value = `${edad} años`;
+      edadHint.textContent = '';
+      edadHint.className = 'hint edad-hint';
+    } else if (fechaInput.value.trim()) {
+      edadHint.textContent = 'Formato esperado: 2 de febrero de 2021';
+      edadHint.className = 'hint edad-hint text-amber-600';
+    }
+  });
+}
+
+// ============================================================
+//  FRACCIONES CHECKBOXES
+// ============================================================
+function renderFracciones(tipoJuicio) {
+  const container = document.getElementById('fracciones-container');
+  const hiddenInput = document.getElementById('fracciones_aplicables');
+
+  if (!tipoJuicio || !FRACCIONES[tipoJuicio]) {
+    container.innerHTML = '<p class="text-sm text-gray-400 italic">Seleccione primero el tipo de juicio para ver las fracciones disponibles.</p>';
+    hiddenInput.value = '';
+    return;
+  }
+
+  const data = FRACCIONES[tipoJuicio];
+  container.innerHTML = `
+    <p class="text-xs text-gray-500 mb-2">Art. ${data.articulo} del ${data.codigo} — Seleccione las fracciones aplicables:</p>
+    ${data.items.map(f => `
+      <label class="fraccion-check">
+        <input type="checkbox" value="${f.num}" class="fraccion-cb">
+        <span class="fraccion-num">${f.num}</span>
+        <span class="fraccion-desc">${f.desc}</span>
+      </label>
+    `).join('')}
+  `;
+
+  container.querySelectorAll('.fraccion-cb').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const checked = [...container.querySelectorAll('.fraccion-cb:checked')].map(c => c.value);
+      hiddenInput.value = checked.join(',');
+    });
+  });
+}
+
+// ============================================================
+//  JUZGADO DROPDOWN + "OTRO"
+// ============================================================
+function setupJuzgadoSelector() {
+  const selector = document.getElementById('juzgado_selector');
+  const input = document.getElementById('juzgado_destino');
+
+  selector.addEventListener('change', () => {
+    if (selector.value === 'otro') {
+      input.classList.remove('hidden');
+      input.value = '';
+      input.focus();
+    } else {
+      input.classList.add('hidden');
+      input.value = selector.value;
+    }
+  });
+
+  // If selector has a value on load
+  if (selector.value && selector.value !== 'otro') {
+    input.value = selector.value;
+  }
+}
+
+// ============================================================
+//  ABOGADOS TEMPLATE
+// ============================================================
+function setupAbogadosTemplate() {
+  const btn = document.getElementById('btn-template-abogado');
+  const textarea = document.getElementById('abogados_autorizados');
+
+  btn.addEventListener('click', () => {
+    const template = 'LIC. [NOMBRE COMPLETO], con Cédula Profesional número [NÚMERO], inscrita en el Tribunal Superior de Justicia del Estado bajo el Folio número [FOLIO]; y/o LIC. [NOMBRE COMPLETO 2], con Cédula Profesional número [NÚMERO], inscrita en el Tribunal Superior de Justicia del Estado bajo el Folio número [FOLIO]';
+    if (!textarea.value.trim() || confirm('¿Reemplazar el contenido actual con la plantilla?')) {
+      textarea.value = template;
+      textarea.focus();
+      textarea.setSelectionRange(5, 22); // Select first [NOMBRE COMPLETO]
+    }
+  });
+}
+
+// ============================================================
+//  AUTO-UPPERCASE
+// ============================================================
+function setupAutoUppercase() {
+  document.addEventListener('blur', (e) => {
+    if (e.target.classList.contains('auto-uppercase') && e.target.value) {
+      e.target.value = e.target.value.toUpperCase();
+    }
+  }, true);
+}
+
+// ============================================================
+//  SUELDO AUTO-FORMAT
+// ============================================================
+function setupSueldoFormat() {
+  const input = document.getElementById('sueldo_demandado');
+  const preview = document.querySelector('.sueldo-preview');
+  if (!input || !preview) return;
+
+  input.addEventListener('blur', () => {
+    const result = formatSueldo(input.value);
+    if (result) {
+      preview.textContent = result.fullText;
+      preview.className = 'hint sueldo-preview text-green-600';
+    } else if (input.value.trim()) {
+      preview.textContent = 'Ingrese un número válido (ej: 20629.94)';
+      preview.className = 'hint sueldo-preview text-amber-600';
+    } else {
+      preview.textContent = '';
+    }
+  });
+}
+
+// ============================================================
+//  PENSION AUTO-LETRA
+// ============================================================
+function setupPensionAutoLetra() {
+  const input = document.getElementById('porcentaje_pension');
+  const letraInput = document.getElementById('porcentaje_pension_letra');
+  const preview = document.querySelector('.pension-letra-preview');
+  if (!input || !letraInput) return;
+
+  input.addEventListener('blur', () => {
+    const num = parseInt(input.value);
+    if (!isNaN(num) && num > 0 && num <= 100) {
+      const letra = numberToSpanish(num).toUpperCase();
+      letraInput.value = letra;
+      if (preview) {
+        preview.textContent = `${num}% = ${letra} POR CIENTO`;
+        preview.className = 'hint pension-letra-preview text-green-600';
+      }
+    } else if (input.value.trim()) {
+      letraInput.value = '';
+      if (preview) {
+        preview.textContent = 'Ingrese un número entre 1 y 100';
+        preview.className = 'hint pension-letra-preview text-amber-600';
+      }
+    }
+  });
+}
+
+// ============================================================
+//  CURP / RFC VALIDATION UI
+// ============================================================
+function setupCURPRFCValidation() {
+  const curpInput = document.getElementById('curp_demandado');
+  const rfcInput = document.getElementById('rfc_demandado');
+  const curpHint = document.querySelector('.curp-validation-hint');
+  const rfcHint = document.querySelector('.rfc-validation-hint');
+  const nombreDemandado = document.getElementById('nombre_demandado');
+  const fechaNacDemandado = document.getElementById('fecha_nacimiento_demandado');
+
+  if (curpInput) {
+    curpInput.addEventListener('blur', () => {
+      if (!curpInput.value.trim()) { curpHint.textContent = ''; return; }
+      const issues = validateCURP(curpInput.value.toUpperCase(), nombreDemandado?.value, fechaNacDemandado?.value);
+      if (issues.length === 0) {
+        curpHint.textContent = 'CURP válido';
+        curpHint.className = 'hint curp-validation-hint text-green-600';
+      } else {
+        curpHint.textContent = issues.join('. ');
+        curpHint.className = 'hint curp-validation-hint text-red-500';
+      }
+    });
+  }
+
+  if (rfcInput) {
+    rfcInput.addEventListener('blur', () => {
+      if (!rfcInput.value.trim()) { rfcHint.textContent = ''; return; }
+      const issues = validateRFC(rfcInput.value.toUpperCase(), nombreDemandado?.value, fechaNacDemandado?.value);
+      if (issues.length === 0) {
+        rfcHint.textContent = 'RFC válido';
+        rfcHint.className = 'hint rfc-validation-hint text-green-600';
+      } else {
+        rfcHint.textContent = issues.join('. ');
+        rfcHint.className = 'hint rfc-validation-hint text-red-500';
+      }
+    });
+  }
+}
+
+// ============================================================
+//  FIELD PROGRESS COUNTER
+// ============================================================
+function updateFieldProgress() {
+  const allFields = form.querySelectorAll('input[required], select[required], textarea[required]');
+  let total = 0;
+  let filled = 0;
+
+  allFields.forEach(f => {
+    // Skip hidden conditional fields
+    const wrapper = f.closest('.conditional');
+    if (wrapper && wrapper.style.display === 'none') return;
+    // Skip hidden juzgado input if selector is used
+    if (f.id === 'juzgado_destino' && f.classList.contains('hidden')) return;
+    total++;
+    if (f.value.trim()) filled++;
+  });
+
+  fieldProgress.textContent = `${filled} de ${total} campos completados`;
+}
+
+// ============================================================
+//  NAVIGATION
+// ============================================================
 function goToStep(step) {
   if (step < 1 || step > TOTAL_STEPS) return;
 
-  // Validate current step before advancing
   if (step > currentStep && !validateStep(currentStep)) return;
 
-  // Hide all steps
   document.querySelectorAll('.wizard-step').forEach((s) => s.classList.remove('active'));
-
-  // Show target step
   const target = document.querySelector(`.wizard-step[data-step="${step}"]`);
   if (target) target.classList.add('active');
 
-  // Update dots
   document.querySelectorAll('.step-dot').forEach((dot) => {
     const dotStep = parseInt(dot.dataset.step);
     dot.classList.remove('active', 'completed');
@@ -102,27 +633,23 @@ function goToStep(step) {
 
   currentStep = step;
 
-  // Update progress bar
   progressBar.style.width = `${(step / TOTAL_STEPS) * 100}%`;
   stepLabel.textContent = `Paso ${step} de ${TOTAL_STEPS}`;
   stepTitle.textContent = STEP_TITLES[step];
 
-  // Show/hide buttons
   btnPrev.classList.toggle('hidden', step === 1);
   btnNext.classList.toggle('hidden', step === TOTAL_STEPS);
   btnSubmit.classList.toggle('hidden', step !== TOTAL_STEPS);
 
-  // Build summary on last step
   if (step === TOTAL_STEPS) buildSummary();
 
-  // Scroll to top
+  updateFieldProgress();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 btnNext.addEventListener('click', () => goToStep(currentStep + 1));
 btnPrev.addEventListener('click', () => goToStep(currentStep - 1));
 
-// Allow clicking step dots (only to completed or current steps)
 document.querySelectorAll('.step-dot').forEach((dot) => {
   dot.addEventListener('click', () => {
     const step = parseInt(dot.dataset.step);
@@ -130,16 +657,20 @@ document.querySelectorAll('.step-dot').forEach((dot) => {
   });
 });
 
-// ===== Validation =====
+// ============================================================
+//  VALIDATION
+// ============================================================
 function validateStep(step) {
   const section = document.querySelector(`.wizard-step[data-step="${step}"]`);
   const requiredFields = section.querySelectorAll('[required]');
   let valid = true;
 
   requiredFields.forEach((field) => {
-    // Skip hidden conditional fields
     const wrapper = field.closest('.conditional');
     if (wrapper && wrapper.style.display === 'none') return;
+
+    // Skip hidden juzgado_destino if selector is not "otro"
+    if (field.id === 'juzgado_destino' && field.classList.contains('hidden')) return;
 
     clearFieldError(field);
 
@@ -148,6 +679,17 @@ function validateStep(step) {
       valid = false;
     }
   });
+
+  // Step 1: validate at least one fraccion is checked
+  if (step === 1) {
+    const fracciones = document.getElementById('fracciones_aplicables');
+    if (!fracciones.value) {
+      const container = document.getElementById('fracciones-container');
+      container.style.border = '2px solid #ef4444';
+      container.style.borderRadius = '0.5rem';
+      valid = false;
+    }
+  }
 
   return valid;
 }
@@ -170,20 +712,23 @@ function clearFieldError(field) {
   if (errorEl) errorEl.style.display = 'none';
 }
 
-// Clear error on input
 form.addEventListener('input', (e) => {
   if (e.target.matches('input, select, textarea')) {
     clearFieldError(e.target);
+    updateFieldProgress();
   }
 });
 
 form.addEventListener('change', (e) => {
   if (e.target.matches('select')) {
     clearFieldError(e.target);
+    updateFieldProgress();
   }
 });
 
-// ===== Conditional Fields =====
+// ============================================================
+//  CONDITIONAL FIELDS
+// ============================================================
 function setupConditionalFields() {
   const conditionalFields = document.querySelectorAll('.conditional[data-show-when]');
 
@@ -195,7 +740,6 @@ function setupConditionalFields() {
       triggerEl.addEventListener('change', () => {
         const show = triggerEl.value === triggerValue;
         field.style.display = show ? '' : 'none';
-        // Clear values when hiding
         if (!show) {
           field.querySelectorAll('input, select, textarea').forEach((input) => {
             input.value = '';
@@ -206,33 +750,67 @@ function setupConditionalFields() {
   });
 }
 
-// ===== Summary =====
+// ============================================================
+//  SUMMARY
+// ============================================================
 function buildSummary() {
   const summaryEl = document.getElementById('summary');
   summaryEl.innerHTML = '';
 
+  // Regular form fields
   const formData = new FormData(form);
+  const skipKeys = new Set();
+
+  // Collect menor fields to show grouped
+  const menorKeys = [];
+  for (const [key] of formData.entries()) {
+    if (key.startsWith('menor_')) {
+      menorKeys.push(key);
+      skipKeys.add(key);
+    }
+  }
+
+  // Regular fields
   for (const [key, value] of formData.entries()) {
-    if (!value.trim()) continue;
+    if (!value.trim() || skipKeys.has(key) || key === 'juzgado_selector') continue;
 
     const label = FIELD_LABELS[key] || key;
     let displayValue = value;
 
-    // Show contact name for telegram
     if (key === 'chat_id_telegram' && TELEGRAM_CONTACTS[value]) {
       displayValue = `${TELEGRAM_CONTACTS[value]} (${value})`;
     }
 
-    // Truncate long values
-    if (displayValue.length > 120) {
-      displayValue = displayValue.substring(0, 120) + '...';
+    if (key === 'sueldo_demandado' && value.trim()) {
+      const result = formatSueldo(value);
+      if (result) displayValue = result.fullText;
     }
 
-    const row = document.createElement('div');
-    row.className = 'summary-row';
-    row.innerHTML = `<span class="summary-label">${label}:</span><span class="summary-value">${escapeHtml(displayValue)}</span>`;
-    summaryEl.appendChild(row);
+    if (displayValue.length > 120) displayValue = displayValue.substring(0, 120) + '...';
+
+    addSummaryRow(summaryEl, label, displayValue);
   }
+
+  // Menores grouped
+  for (let i = 1; i <= menoresCount; i++) {
+    const nombre = formData.get(`menor_${i}_nombre`) || '';
+    const apellidos = formData.get(`menor_${i}_apellidos`) || '';
+    const genero = formData.get(`menor_${i}_genero`) || '';
+    const edad = formData.get(`menor_${i}_edad`) || '';
+    const iniciales = formData.get(`menor_${i}_iniciales`) || '';
+
+    if (nombre || apellidos) {
+      const menorLabel = menoresCount > 1 ? `Menor ${i}` : 'Menor';
+      addSummaryRow(summaryEl, menorLabel, `${nombre} ${apellidos} (${genero}, ${edad}, iniciales: ${iniciales})`);
+    }
+  }
+}
+
+function addSummaryRow(container, label, value) {
+  const row = document.createElement('div');
+  row.className = 'summary-row';
+  row.innerHTML = `<span class="summary-label">${label}:</span><span class="summary-value">${escapeHtml(value)}</span>`;
+  container.appendChild(row);
 }
 
 function escapeHtml(text) {
@@ -241,18 +819,129 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
-// ===== Submit =====
-btnSubmit.addEventListener('click', async () => {
-  if (!validateStep(currentStep)) return;
+// ============================================================
+//  AI CHECK (HAIKU via server)
+// ============================================================
+let aiCurrentField = null;
+let aiSuggestedText = '';
 
-  // Collect all form data
+function setupAICheck() {
+  const panel = document.getElementById('ai-suggestion-panel');
+  const loadingEl = document.getElementById('ai-suggestion-loading');
+  const contentEl = document.getElementById('ai-suggestion-content');
+  const errorEl = document.getElementById('ai-suggestion-error');
+  const textEl = document.getElementById('ai-suggestion-text');
+
+  // Close
+  document.getElementById('ai-panel-close').addEventListener('click', () => panel.classList.add('hidden'));
+  document.getElementById('ai-suggestion-dismiss').addEventListener('click', () => panel.classList.add('hidden'));
+
+  // Apply
+  document.getElementById('ai-suggestion-apply').addEventListener('click', () => {
+    if (aiCurrentField && aiSuggestedText) {
+      const field = document.getElementById(aiCurrentField);
+      if (field) field.value = aiSuggestedText;
+    }
+    panel.classList.add('hidden');
+  });
+
+  // Click handlers for all AI check buttons
+  document.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.btn-ai-check');
+    if (!btn) return;
+
+    const fieldId = btn.dataset.field;
+    const field = document.getElementById(fieldId);
+    if (!field || !field.value.trim()) {
+      alert('Primero escribe algo en el campo para que la IA pueda revisarlo.');
+      return;
+    }
+
+    aiCurrentField = fieldId;
+    panel.classList.remove('hidden');
+    loadingEl.classList.remove('hidden');
+    contentEl.classList.add('hidden');
+    errorEl.classList.add('hidden');
+
+    try {
+      const response = await fetch('/api/check-field', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          field_name: fieldId,
+          field_value: field.value,
+          field_label: field.closest('.field')?.querySelector('label')?.textContent?.replace(' *', '') || fieldId,
+        }),
+      });
+
+      const data = await response.json();
+
+      loadingEl.classList.add('hidden');
+
+      if (data.error) {
+        errorEl.textContent = data.error;
+        errorEl.classList.remove('hidden');
+        return;
+      }
+
+      aiSuggestedText = data.suggested || '';
+      textEl.innerHTML = '';
+
+      if (data.original_ok) {
+        textEl.innerHTML = '<p class="text-green-600 font-medium mb-2">La redacción es correcta.</p>';
+        if (data.notes) textEl.innerHTML += `<p class="text-gray-600">${escapeHtml(data.notes)}</p>`;
+        document.getElementById('ai-suggestion-apply').classList.add('hidden');
+      } else {
+        if (data.notes) textEl.innerHTML += `<p class="text-amber-700 font-medium mb-2">${escapeHtml(data.notes)}</p>`;
+        if (aiSuggestedText) {
+          textEl.innerHTML += `<div class="mt-2 p-3 bg-blue-50 rounded text-sm"><strong>Sugerencia:</strong><br>${escapeHtml(aiSuggestedText)}</div>`;
+        }
+        document.getElementById('ai-suggestion-apply').classList.remove('hidden');
+      }
+
+      contentEl.classList.remove('hidden');
+    } catch (err) {
+      loadingEl.classList.add('hidden');
+      errorEl.textContent = 'Error de conexión. Verifica tu internet e intenta de nuevo.';
+      errorEl.classList.remove('hidden');
+    }
+  });
+}
+
+// ============================================================
+//  SUBMIT (ASYNC)
+// ============================================================
+function collectPayload() {
   const formData = new FormData(form);
   const data = {};
   for (const [key, value] of formData.entries()) {
-    data[key] = value.trim();
+    if (!key.startsWith('menor_') && key !== 'juzgado_selector') {
+      data[key] = value.trim();
+    }
   }
 
-  // Map field names to match what n8n expects (original FormTrigger labels)
+  // Collect menores as array
+  const menores = [];
+  for (let i = 1; i <= menoresCount; i++) {
+    menores.push({
+      nombre: formData.get(`menor_${i}_nombre`)?.trim() || '',
+      apellidos: formData.get(`menor_${i}_apellidos`)?.trim() || '',
+      iniciales: formData.get(`menor_${i}_iniciales`)?.trim() || '',
+      genero: formData.get(`menor_${i}_genero`)?.trim() || '',
+      fecha_nacimiento: formData.get(`menor_${i}_fecha_nacimiento`)?.trim() || '',
+      edad: formData.get(`menor_${i}_edad`)?.trim() || '',
+      escuela: formData.get(`menor_${i}_escuela`)?.trim() || '',
+      documento_identidad: formData.get(`menor_${i}_documento_identidad`)?.trim() || '',
+    });
+  }
+
+  // Sueldo: send the formatted version
+  if (data.sueldo_demandado) {
+    const result = formatSueldo(data.sueldo_demandado);
+    if (result) data.sueldo_demandado = result.fullText;
+  }
+
+  // Build payload matching n8n expected format
   const payload = {
     'Tipo de juicio': data.tipo_juicio || '',
     'Juzgado destino': data.juzgado_destino || '',
@@ -273,14 +962,18 @@ btnSubmit.addEventListener('click', async () => {
     'Domicilio empresa demandado': data.domicilio_empresa_demandado || '',
     'Puesto del demandado': data.puesto_demandado || '',
     'Sueldo del demandado': data.sueldo_demandado || '',
-    'Nombre del menor': data.nombre_menor || '',
-    'Apellidos del menor': data.apellidos_menor || '',
-    'Iniciales del menor': data.iniciales_menor || '',
-    'Género del menor': data.genero_menor || '',
-    'Fecha nacimiento menor': data.fecha_nacimiento_menor || '',
-    'Edad del menor': data.edad_menor || '',
-    'Escuela del menor': data.escuela_menor || '',
-    'Documento identidad menor': data.documento_identidad_menor || '',
+    // Menores as array (new format)
+    'Menores': menores,
+    // Backward compat: first minor in flat fields
+    'Nombre del menor': menores[0]?.nombre || '',
+    'Apellidos del menor': menores[0]?.apellidos || '',
+    'Iniciales del menor': menores[0]?.iniciales || '',
+    'Género del menor': menores[0]?.genero || '',
+    'Fecha nacimiento menor': menores[0]?.fecha_nacimiento || '',
+    'Edad del menor': menores[0]?.edad || '',
+    'Escuela del menor': menores[0]?.escuela || '',
+    'Documento identidad menor': menores[0]?.documento_identidad || '',
+    // Rest
     'Abogados autorizados': data.abogados_autorizados || '',
     'Persona autorizada notificaciones': data.persona_autorizada_notificaciones || '',
     'Tiene procedimiento previo': data.tiene_procedimiento_previo || 'No',
@@ -299,6 +992,15 @@ btnSubmit.addEventListener('click', async () => {
     'Chat ID Telegram': data.chat_id_telegram || '',
   };
 
+  return payload;
+}
+
+async function submitForm() {
+  if (!validateStep(currentStep)) return;
+
+  const payload = collectPayload();
+  lastPayload = payload;
+
   // Show loading
   loadingOverlay.classList.remove('hidden');
   btnSubmit.disabled = true;
@@ -310,26 +1012,69 @@ btnSubmit.addEventListener('click', async () => {
       body: JSON.stringify(payload),
     });
 
-    const text = await response.text();
+    const result = await response.json();
+    loadingOverlay.classList.add('hidden');
 
-    if (!response.ok) {
-      let detail = 'Error al enviar';
-      try { detail = JSON.parse(text).detail || detail; } catch {}
-      throw new Error(detail);
+    if (!response.ok || result.error) {
+      showErrorScreen(result.detail || result.error || `Error ${response.status}: No se pudo enviar el escrito.`);
+      return;
     }
 
-    // Success
-    loadingOverlay.classList.add('hidden');
-    form.closest('main').querySelectorAll('.card, .flex').forEach((el) => el.classList.add('hidden'));
+    // Success - show async message
+    document.getElementById('wizard-form').classList.add('hidden');
+    document.querySelector('.flex.justify-between.mt-6')?.classList.add('hidden');
+    document.querySelector('.max-w-4xl.mx-auto.px-4.mt-6')?.classList.add('hidden'); // progress bar
     successMessage.classList.remove('hidden');
   } catch (err) {
     loadingOverlay.classList.add('hidden');
-    btnSubmit.disabled = false;
-    alert('Error al generar el escrito: ' + err.message);
+    showErrorScreen('No se pudo conectar con el servidor. Verifica tu conexión a internet.');
+  }
+}
+
+function showErrorScreen(detail) {
+  btnSubmit.disabled = false;
+  document.getElementById('wizard-form').classList.add('hidden');
+  document.querySelector('.flex.justify-between.mt-6')?.classList.add('hidden');
+  document.querySelector('.max-w-4xl.mx-auto.px-4.mt-6')?.classList.add('hidden');
+  document.getElementById('error-detail').textContent = detail;
+  errorMessage.classList.remove('hidden');
+}
+
+btnSubmit.addEventListener('click', submitForm);
+
+// Retry button
+document.getElementById('btn-retry')?.addEventListener('click', async () => {
+  errorMessage.classList.add('hidden');
+  if (lastPayload) {
+    loadingOverlay.classList.remove('hidden');
+    try {
+      const response = await fetch('/api/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(lastPayload),
+      });
+      const result = await response.json();
+      loadingOverlay.classList.add('hidden');
+
+      if (!response.ok || result.error) {
+        document.getElementById('error-detail').textContent = result.detail || result.error || 'Error al reintentar.';
+        errorMessage.classList.remove('hidden');
+        return;
+      }
+      successMessage.classList.remove('hidden');
+    } catch (err) {
+      loadingOverlay.classList.add('hidden');
+      document.getElementById('error-detail').textContent = 'No se pudo conectar. Intenta de nuevo.';
+      errorMessage.classList.remove('hidden');
+    }
+  } else {
+    location.reload();
   }
 });
 
-// ===== Keyboard: Enter advances step =====
+// ============================================================
+//  KEYBOARD: Enter advances step
+// ============================================================
 form.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
     e.preventDefault();
@@ -339,6 +1084,52 @@ form.addEventListener('keydown', (e) => {
   }
 });
 
-// ===== Init =====
-setupConditionalFields();
-goToStep(1);
+// ============================================================
+//  MENORES container event delegation
+// ============================================================
+document.getElementById('menores-container')?.addEventListener('click', (e) => {
+  const removeBtn = e.target.closest('.btn-remove-menor');
+  if (removeBtn) {
+    const idx = parseInt(removeBtn.dataset.remove);
+    if (confirm(`¿Quitar los datos del Menor ${idx}?`)) {
+      removeMenor(idx);
+    }
+  }
+});
+
+document.getElementById('btn-add-menor')?.addEventListener('click', addMenor);
+
+// ============================================================
+//  TIPO JUICIO change -> update fracciones
+// ============================================================
+document.getElementById('tipo_juicio')?.addEventListener('change', (e) => {
+  renderFracciones(e.target.value);
+  // Clear fracciones border error
+  const container = document.getElementById('fracciones-container');
+  if (container) container.style.border = '';
+});
+
+// ============================================================
+//  INIT
+// ============================================================
+function init() {
+  setupConditionalFields();
+  setupJuzgadoSelector();
+  setupAbogadosTemplate();
+  setupAutoUppercase();
+  setupSueldoFormat();
+  setupPensionAutoLetra();
+  setupCURPRFCValidation();
+  setupAICheck();
+
+  // Add first minor
+  addMenor();
+
+  // Render initial fracciones state
+  renderFracciones('');
+
+  updateFieldProgress();
+  goToStep(1);
+}
+
+init();
