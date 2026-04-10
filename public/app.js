@@ -241,15 +241,42 @@ const MESES = {
 
 function parseFechaTexto(texto) {
   if (!texto) return null;
-  const t = texto.toLowerCase().trim();
-  // "15 de agosto de 2019" or "15 de Agosto de 2019"
-  const match = t.match(/(\d{1,2})\s+de\s+(\w+)\s+de\s+(\d{4})/);
-  if (!match) return null;
-  const day = parseInt(match[1]);
-  const month = MESES[match[2].toLowerCase()];
-  const year = parseInt(match[3]);
-  if (!month || !day || !year) return null;
-  return { day, month, year };
+  const t = texto.toLowerCase().trim().replace(/,/g, '');
+
+  // Format: "15 de agosto de 2019" or "15 de agosto 2019"
+  let match = t.match(/(\d{1,2})\s+de\s+(\w+)\s+(?:de\s+)?(\d{4})/);
+  if (match) {
+    const day = parseInt(match[1]);
+    const month = MESES[match[2]];
+    const year = parseInt(match[3]);
+    if (month && day && year) return { day, month, year };
+  }
+
+  // Format: "03 03 2022" or "03/03/2022" or "03-03-2022" (DD MM YYYY)
+  match = t.match(/(\d{1,2})[\s/\-.](\d{1,2})[\s/\-.](\d{4})/);
+  if (match) {
+    const day = parseInt(match[1]);
+    const month = parseInt(match[2]);
+    const year = parseInt(match[3]);
+    if (month >= 1 && month <= 12 && day >= 1 && day <= 31) return { day, month, year };
+  }
+
+  // Format: "2022-03-03" (YYYY-MM-DD ISO)
+  match = t.match(/(\d{4})[\s/\-.](\d{1,2})[\s/\-.](\d{1,2})/);
+  if (match) {
+    const year = parseInt(match[1]);
+    const month = parseInt(match[2]);
+    const day = parseInt(match[3]);
+    if (month >= 1 && month <= 12 && day >= 1 && day <= 31) return { day, month, year };
+  }
+
+  // Format: "marzo 2022" or "marzo de 2022" (month year only, day=1)
+  match = t.match(/(\w+)\s+(?:de\s+)?(\d{4})/);
+  if (match && MESES[match[1]]) {
+    return { day: 1, month: MESES[match[1]], year: parseInt(match[2]) };
+  }
+
+  return null;
 }
 
 function calcularEdad(fechaNacTexto) {
