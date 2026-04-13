@@ -5,8 +5,9 @@ let currentStep = 1;
 let menoresCount = 0;
 const MAX_MENORES = 10;
 let lastPayload = null; // for retry
+let juicioMode = 'pp'; // 'pp' or 'sucesorio'
 
-const STEP_TITLES = {
+const STEP_TITLES_PP = {
   1: 'Tipo de Juicio',
   2: 'Datos del Actor',
   3: 'Datos del Demandado',
@@ -16,6 +17,19 @@ const STEP_TITLES = {
   7: 'Pruebas',
   8: 'Hechos y Envío',
 };
+
+const STEP_TITLES_SUCESORIO = {
+  1: 'Tipo de Juicio',
+  2: 'De Cujus',
+  3: 'Cónyuge',
+  4: 'Hijos',
+  5: 'Representación',
+  6: 'Albacea y Repudio',
+  7: 'Testigos y Docs',
+  8: 'Hechos y Envío',
+};
+
+const STEP_TITLES = STEP_TITLES_PP;
 
 // ===== Fracciones data =====
 const FRACCIONES = {
@@ -83,6 +97,36 @@ const FIELD_LABELS = {
   palabras_clave_jurisprudencia: 'Jurisprudencia',
   narrativa_hechos: 'Hechos',
   chat_id_telegram: 'Enviar a',
+  // Sucesorio fields
+  etapa_sucesorio: 'Etapa',
+  suc_nombre_de_cujus: 'De Cujus',
+  suc_genero_de_cujus: 'Género de cujus',
+  suc_alias: 'Alias',
+  suc_fecha_defuncion: 'Fecha defunción',
+  suc_ultimo_domicilio: 'Último domicilio',
+  suc_conyuge_comparece: 'Cónyuge comparece',
+  suc_nombre_conyuge: 'Cónyuge',
+  suc_regimen_matrimonial: 'Régimen matrimonial',
+  suc_fecha_matrimonio: 'Fecha matrimonio',
+  suc_datos_acta_matrimonio: 'Datos acta matrimonio',
+  suc_hijos_comparecientes: 'Hijos comparecientes',
+  suc_total_hijos: 'Total hijos',
+  suc_hijos_fallecidos: 'Hijos fallecidos',
+  suc_detalle_hijos_fallecidos: 'Detalle hijos fallecidos',
+  suc_domicilios_interesados: 'Domicilios interesados',
+  suc_domicilio_procesal: 'Dom. procesal',
+  suc_abogados_autorizados: 'Abogados',
+  suc_persona_autorizada: 'Pers. autorizada',
+  suc_representante_comun: 'Representante común',
+  suc_albacea_propuesto: 'Albacea propuesto',
+  suc_hay_repudio: 'Hay repudio',
+  suc_beneficiario_repudio: 'Beneficiario repudio',
+  suc_declaraciones_adicionales: 'Declaraciones adicionales',
+  suc_testigo_1: 'Testigo 1',
+  suc_testigo_2: 'Testigo 2',
+  suc_lista_documentales: 'Documentales',
+  suc_narrativa_hechos: 'Hechos',
+  suc_chat_id_telegram: 'Enviar a',
 };
 
 const TELEGRAM_CONTACTS = {
@@ -504,15 +548,27 @@ function setupJuzgadoSelector() {
 //  ABOGADOS TEMPLATE
 // ============================================================
 function setupAbogadosTemplate() {
+  const template = 'LIC. [NOMBRE COMPLETO], con Cédula Profesional número [NÚMERO], inscrita en el Tribunal Superior de Justicia del Estado bajo el Folio número [FOLIO]; y/o LIC. [NOMBRE COMPLETO 2], con Cédula Profesional número [NÚMERO], inscrita en el Tribunal Superior de Justicia del Estado bajo el Folio número [FOLIO]';
+
+  // PP version
   const btn = document.getElementById('btn-template-abogado');
   const textarea = document.getElementById('abogados_autorizados');
-
-  btn.addEventListener('click', () => {
-    const template = 'LIC. [NOMBRE COMPLETO], con Cédula Profesional número [NÚMERO], inscrita en el Tribunal Superior de Justicia del Estado bajo el Folio número [FOLIO]; y/o LIC. [NOMBRE COMPLETO 2], con Cédula Profesional número [NÚMERO], inscrita en el Tribunal Superior de Justicia del Estado bajo el Folio número [FOLIO]';
+  btn?.addEventListener('click', () => {
     if (!textarea.value.trim() || confirm('¿Reemplazar el contenido actual con la plantilla?')) {
       textarea.value = template;
       textarea.focus();
-      textarea.setSelectionRange(5, 22); // Select first [NOMBRE COMPLETO]
+      textarea.setSelectionRange(5, 22);
+    }
+  });
+
+  // Sucesorio version
+  const btnSuc = document.getElementById('btn-template-abogado-suc');
+  const textareaSuc = document.getElementById('suc_abogados_autorizados');
+  btnSuc?.addEventListener('click', () => {
+    if (!textareaSuc.value.trim() || confirm('¿Reemplazar el contenido actual con la plantilla?')) {
+      textareaSuc.value = template;
+      textareaSuc.focus();
+      textareaSuc.setSelectionRange(5, 22);
     }
   });
 }
@@ -630,6 +686,12 @@ function updateFieldProgress() {
     // Skip hidden conditional fields
     const wrapper = f.closest('.conditional');
     if (wrapper && wrapper.style.display === 'none') return;
+    // Skip fields in hidden juicio mode blocks
+    const modeBlock = f.closest('.juicio-pp, .juicio-sucesorio');
+    if (modeBlock && modeBlock.classList.contains('hidden')) return;
+    // Skip hidden wrappers
+    const hiddenWrapper = f.closest('#fracciones-wrapper, #etapa-wrapper');
+    if (hiddenWrapper && hiddenWrapper.classList.contains('hidden')) return;
     // Skip hidden juzgado input if selector is used
     if (f.id === 'juzgado_destino' && f.classList.contains('hidden')) return;
     total++;
@@ -693,8 +755,17 @@ function validateStep(step) {
   let valid = true;
 
   requiredFields.forEach((field) => {
+    // Skip fields inside hidden conditional blocks
     const wrapper = field.closest('.conditional');
     if (wrapper && wrapper.style.display === 'none') return;
+
+    // Skip fields inside hidden juicio mode blocks
+    const modeBlock = field.closest('.juicio-pp, .juicio-sucesorio');
+    if (modeBlock && modeBlock.classList.contains('hidden')) return;
+
+    // Skip hidden wrappers (fracciones/etapa toggle)
+    const hiddenWrapper = field.closest('#fracciones-wrapper, #etapa-wrapper');
+    if (hiddenWrapper && hiddenWrapper.classList.contains('hidden')) return;
 
     // Skip hidden juzgado_destino if selector is not "otro"
     if (field.id === 'juzgado_destino' && field.classList.contains('hidden')) return;
@@ -707,13 +778,22 @@ function validateStep(step) {
     }
   });
 
-  // Step 1: validate at least one fraccion is checked
-  if (step === 1) {
+  // Step 1: validate at least one fraccion is checked (PP only)
+  if (step === 1 && juicioMode === 'pp') {
     const fracciones = document.getElementById('fracciones_aplicables');
     if (!fracciones.value) {
       const container = document.getElementById('fracciones-container');
       container.style.border = '2px solid #ef4444';
       container.style.borderRadius = '0.5rem';
+      valid = false;
+    }
+  }
+
+  // Step 1: validate etapa is selected (Sucesorio only)
+  if (step === 1 && juicioMode === 'sucesorio') {
+    const etapa = document.getElementById('etapa_sucesorio');
+    if (!etapa.value) {
+      showFieldError(etapa, 'Seleccione la etapa del juicio');
       valid = false;
     }
   }
@@ -784,22 +864,38 @@ function buildSummary() {
   const summaryEl = document.getElementById('summary');
   summaryEl.innerHTML = '';
 
-  // Regular form fields
   const formData = new FormData(form);
-  const skipKeys = new Set();
 
-  // Collect menor fields to show grouped
-  const menorKeys = [];
-  for (const [key] of formData.entries()) {
-    if (key.startsWith('menor_')) {
-      menorKeys.push(key);
-      skipKeys.add(key);
+  if (juicioMode === 'sucesorio') {
+    // Sucesorio summary: show only suc_ fields + shared step-1 fields
+    const sharedKeys = ['tipo_juicio', 'etapa_sucesorio', 'juzgado_destino', 'numero_expediente', 'fecha_escrito'];
+    for (const key of sharedKeys) {
+      const value = formData.get(key);
+      if (value && value.trim()) {
+        addSummaryRow(summaryEl, FIELD_LABELS[key] || key, value);
+      }
     }
+    for (const [key, value] of formData.entries()) {
+      if (!key.startsWith('suc_') || !value.trim()) continue;
+      const label = FIELD_LABELS[key] || key;
+      let displayValue = value;
+      if (key === 'suc_chat_id_telegram' && TELEGRAM_CONTACTS[value]) {
+        displayValue = `${TELEGRAM_CONTACTS[value]} (${value})`;
+      }
+      if (displayValue.length > 120) displayValue = displayValue.substring(0, 120) + '...';
+      addSummaryRow(summaryEl, label, displayValue);
+    }
+    return;
   }
 
-  // Regular fields
+  // --- PP MODE ---
+  const skipKeys = new Set();
+  for (const [key] of formData.entries()) {
+    if (key.startsWith('menor_') || key.startsWith('suc_')) skipKeys.add(key);
+  }
+
   for (const [key, value] of formData.entries()) {
-    if (!value.trim() || skipKeys.has(key) || key === 'juzgado_selector') continue;
+    if (!value.trim() || skipKeys.has(key) || key === 'juzgado_selector' || key === 'etapa_sucesorio') continue;
 
     const label = FIELD_LABELS[key] || key;
     let displayValue = value;
@@ -947,6 +1043,53 @@ function collectPayload() {
     }
   }
 
+  // --- SUCESORIO MODE ---
+  if (juicioMode === 'sucesorio') {
+    return {
+      'Tipo de juicio': data.tipo_juicio || '',
+      'Etapa': data.etapa_sucesorio || '1',
+      'Juzgado destino': data.juzgado_destino || '',
+      'Número de expediente': data.numero_expediente || '',
+      'Fecha del escrito': data.fecha_escrito || '',
+      // De cujus
+      'Nombre de cujus': data.suc_nombre_de_cujus || '',
+      'Género de cujus': data.suc_genero_de_cujus || '',
+      'Alias': data.suc_alias || '',
+      'Fecha defunción': data.suc_fecha_defuncion || '',
+      'Último domicilio': data.suc_ultimo_domicilio || '',
+      // Cónyuge
+      'Cónyuge comparece': data.suc_conyuge_comparece || 'No',
+      'Nombre cónyuge': data.suc_nombre_conyuge || '',
+      'Régimen matrimonial': data.suc_regimen_matrimonial || '',
+      'Fecha matrimonio': data.suc_fecha_matrimonio || '',
+      'Datos acta matrimonio': data.suc_datos_acta_matrimonio || '',
+      // Hijos
+      'Hijos comparecientes': data.suc_hijos_comparecientes || '',
+      'Total hijos': data.suc_total_hijos || '',
+      'Hijos fallecidos': data.suc_hijos_fallecidos || 'No',
+      'Detalle hijos fallecidos': data.suc_detalle_hijos_fallecidos || '',
+      'Domicilios interesados': data.suc_domicilios_interesados || '',
+      // Representación
+      'Domicilio procesal': data.suc_domicilio_procesal || '',
+      'Abogados autorizados': data.suc_abogados_autorizados || '',
+      'Persona autorizada notificaciones': data.suc_persona_autorizada || '',
+      'Representante común': data.suc_representante_comun || '',
+      // Albacea y repudio
+      'Albacea propuesto': data.suc_albacea_propuesto || '',
+      'Hay repudio': data.suc_hay_repudio || 'No',
+      'Beneficiario repudio': data.suc_beneficiario_repudio || '',
+      'Declaraciones adicionales': data.suc_declaraciones_adicionales || '',
+      // Testigos y docs
+      'Testigo 1': data.suc_testigo_1 || '',
+      'Testigo 2': data.suc_testigo_2 || '',
+      'Lista de documentales': data.suc_lista_documentales || '',
+      // Hechos y envío
+      'Narrativa de los hechos': data.suc_narrativa_hechos || '',
+      'Chat ID Telegram': data.suc_chat_id_telegram || '',
+    };
+  }
+
+  // --- PP MODE (existing) ---
   // Collect menores as array
   const menores = [];
   for (let i = 1; i <= menoresCount; i++) {
@@ -1127,10 +1270,54 @@ document.getElementById('menores-container')?.addEventListener('click', (e) => {
 document.getElementById('btn-add-menor')?.addEventListener('click', addMenor);
 
 // ============================================================
-//  TIPO JUICIO change -> update fracciones
+//  JUICIO MODE SWITCHING
+// ============================================================
+function switchJuicioMode(newMode) {
+  juicioMode = newMode;
+
+  // Toggle visibility of PP vs Sucesorio blocks in all steps
+  document.querySelectorAll('.juicio-pp').forEach(el => {
+    el.classList.toggle('hidden', newMode !== 'pp');
+  });
+  document.querySelectorAll('.juicio-sucesorio').forEach(el => {
+    el.classList.toggle('hidden', newMode !== 'sucesorio');
+  });
+
+  // Toggle fracciones (PP only) vs etapa (Sucesorio only) in step 1
+  const fraccionesWrapper = document.getElementById('fracciones-wrapper');
+  const etapaWrapper = document.getElementById('etapa-wrapper');
+  if (fraccionesWrapper) fraccionesWrapper.classList.toggle('hidden', newMode === 'sucesorio');
+  if (etapaWrapper) etapaWrapper.classList.toggle('hidden', newMode !== 'sucesorio');
+
+  // Toggle required on fracciones hidden input
+  const fraccionesInput = document.getElementById('fracciones_aplicables');
+  if (fraccionesInput) fraccionesInput.required = (newMode === 'pp');
+
+  // Update step titles
+  const titles = newMode === 'sucesorio' ? STEP_TITLES_SUCESORIO : STEP_TITLES_PP;
+  Object.assign(STEP_TITLES, titles);
+  stepTitle.textContent = STEP_TITLES[currentStep];
+
+  // Re-setup conditional fields for newly visible elements
+  setupConditionalFields();
+  updateFieldProgress();
+}
+
+// ============================================================
+//  TIPO JUICIO change -> update fracciones / mode
 // ============================================================
 document.getElementById('tipo_juicio')?.addEventListener('change', (e) => {
-  renderFracciones(e.target.value);
+  const val = e.target.value;
+  const isSucesorio = val === 'Sucesorio Intestamentario';
+
+  switchJuicioMode(isSucesorio ? 'sucesorio' : 'pp');
+
+  if (!isSucesorio) {
+    renderFracciones(val);
+  } else {
+    renderFracciones(''); // clear fracciones
+  }
+
   // Clear fracciones border error
   const container = document.getElementById('fracciones-container');
   if (container) container.style.border = '';

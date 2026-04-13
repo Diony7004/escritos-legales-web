@@ -71,6 +71,7 @@
                 <option value="">Seleccionar...</option>
                 <option value="Pérdida de Patria Potestad">Pérdida de Patria Potestad</option>
                 <option value="Suspensión de Patria Potestad">Suspensión de Patria Potestad</option>
+                <option value="Sucesorio Intestamentario">Sucesorio Intestamentario</option>
               </select>
             </div>
             <div class="field">
@@ -96,251 +97,496 @@
               <label for="numero_expediente">Número de expediente</label>
               <input type="text" id="numero_expediente" name="numero_expediente" placeholder="Ej: 1353/25 (vacío si es nuevo)">
             </div>
-            <!-- Fracciones dinámicas -->
-            <div class="field md:col-span-2">
+            <!-- Fracciones dinámicas (solo PP) -->
+            <div id="fracciones-wrapper" class="field md:col-span-2">
               <label>Fracciones aplicables <span class="req">*</span></label>
               <div id="fracciones-container" class="fracciones-box">
                 <p class="text-sm text-gray-400 italic">Seleccione primero el tipo de juicio para ver las fracciones disponibles.</p>
               </div>
               <input type="hidden" id="fracciones_aplicables" name="fracciones_aplicables" required>
             </div>
+            <!-- Etapa (solo Sucesorio) -->
+            <div id="etapa-wrapper" class="field md:col-span-2 hidden">
+              <label for="etapa_sucesorio">Etapa del juicio <span class="req">*</span></label>
+              <select id="etapa_sucesorio" name="etapa_sucesorio">
+                <option value="">Seleccionar etapa...</option>
+                <option value="1">Etapa 1 — Nombramiento de Herederos y Albacea</option>
+                <option value="2" disabled>Etapa 2 — Inventarios y Avalúos (próximamente)</option>
+                <option value="3" disabled>Etapa 3 — Cuentas de Albaceazgo (próximamente)</option>
+                <option value="4" disabled>Etapa 4 — Partición de la Herencia (próximamente)</option>
+              </select>
+            </div>
           </div>
         </div>
       </section>
 
-      <!-- PASO 2: Datos del Actor -->
+      <!-- PASO 2: Datos del Actor (PP) / Datos del De Cujus (Sucesorio) -->
       <section class="wizard-step" data-step="2">
-        <div class="card">
-          <h2 class="card-title">Datos del Actor</h2>
-          <p class="card-desc">Información de quien promueve la demanda.</p>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-6">
-            <div class="field">
-              <label for="nombre_actor">Nombre del actor <span class="req">*</span></label>
-              <input type="text" id="nombre_actor" name="nombre_actor" placeholder="Ej: LAURA LUNA RODRÍGUEZ" required class="auto-uppercase">
-            </div>
-            <div class="field">
-              <label for="calidad_actor">Calidad del actor <span class="req">*</span></label>
-              <select id="calidad_actor" name="calidad_actor" required>
-                <option value="">Seleccionar...</option>
-                <option value="madre">Madre</option>
-                <option value="padre">Padre</option>
-                <option value="tutor">Tutor</option>
-                <option value="abuelo/a">Abuelo/a</option>
-              </select>
-            </div>
-            <div class="field md:col-span-2">
-              <label for="domicilio_actor">Domicilio habitual del actor <span class="req">*</span></label>
-              <div class="field-with-ai">
-                <textarea id="domicilio_actor" name="domicilio_actor" rows="2" placeholder="Calle, número exterior e interior, colonia, código postal, municipio, estado" required spellcheck="true"></textarea>
-                <button type="button" class="btn-ai-check" data-field="domicilio_actor" title="Revisar redacción con IA">&#9998;</button>
+        <!-- PP MODE -->
+        <div class="juicio-pp">
+          <div class="card">
+            <h2 class="card-title">Datos del Actor</h2>
+            <p class="card-desc">Información de quien promueve la demanda.</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-6">
+              <div class="field">
+                <label for="nombre_actor">Nombre del actor <span class="req">*</span></label>
+                <input type="text" id="nombre_actor" name="nombre_actor" placeholder="Ej: LAURA LUNA RODRÍGUEZ" required class="auto-uppercase">
+              </div>
+              <div class="field">
+                <label for="calidad_actor">Calidad del actor <span class="req">*</span></label>
+                <select id="calidad_actor" name="calidad_actor" required>
+                  <option value="">Seleccionar...</option>
+                  <option value="madre">Madre</option>
+                  <option value="padre">Padre</option>
+                  <option value="tutor">Tutor</option>
+                  <option value="abuelo/a">Abuelo/a</option>
+                </select>
+              </div>
+              <div class="field md:col-span-2">
+                <label for="domicilio_actor">Domicilio habitual del actor <span class="req">*</span></label>
+                <div class="field-with-ai">
+                  <textarea id="domicilio_actor" name="domicilio_actor" rows="2" placeholder="Calle, número exterior e interior, colonia, código postal, municipio, estado" required spellcheck="true"></textarea>
+                  <button type="button" class="btn-ai-check" data-field="domicilio_actor" title="Revisar redacción con IA">&#9998;</button>
+                </div>
+              </div>
+              <div class="field md:col-span-2">
+                <label for="domicilio_procesal">Domicilio procesal <span class="req">*</span></label>
+                <div class="field-with-ai">
+                  <textarea id="domicilio_procesal" name="domicilio_procesal" rows="2" placeholder="Domicilio del despacho para notificaciones" required spellcheck="true"></textarea>
+                  <button type="button" class="btn-ai-check" data-field="domicilio_procesal" title="Revisar redacción con IA">&#9998;</button>
+                </div>
               </div>
             </div>
-            <div class="field md:col-span-2">
-              <label for="domicilio_procesal">Domicilio procesal <span class="req">*</span></label>
-              <div class="field-with-ai">
-                <textarea id="domicilio_procesal" name="domicilio_procesal" rows="2" placeholder="Domicilio del despacho para notificaciones" required spellcheck="true"></textarea>
-                <button type="button" class="btn-ai-check" data-field="domicilio_procesal" title="Revisar redacción con IA">&#9998;</button>
+          </div>
+        </div>
+        <!-- SUCESORIO MODE -->
+        <div class="juicio-sucesorio hidden">
+          <div class="card">
+            <h2 class="card-title">Datos del De Cujus (Persona Fallecida)</h2>
+            <p class="card-desc">Información de la persona cuya sucesión se denuncia.</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-6">
+              <div class="field">
+                <label for="suc_nombre_de_cujus">Nombre completo <span class="req">*</span></label>
+                <input type="text" id="suc_nombre_de_cujus" name="suc_nombre_de_cujus" placeholder="Ej: ANTONIO CONCHAS OLIVA" required class="auto-uppercase">
+              </div>
+              <div class="field">
+                <label for="suc_genero_de_cujus">Género <span class="req">*</span></label>
+                <select id="suc_genero_de_cujus" name="suc_genero_de_cujus" required>
+                  <option value="">Seleccionar...</option>
+                  <option value="hombre">Hombre (del de cujus)</option>
+                  <option value="mujer">Mujer (de la de cujus)</option>
+                </select>
+              </div>
+              <div class="field md:col-span-2">
+                <label for="suc_alias">Alias / También conocido(a) como</label>
+                <div class="field-with-ai">
+                  <textarea id="suc_alias" name="suc_alias" rows="2" placeholder="Si tiene alias, escriba cada uno separado por coma. Ej: MA. LUZ GUTIÉRREZ RESÉNDIZ, MARÍA DE LA LUZ GUTIÉRREZ DE MARTÍNEZ" spellcheck="true"></textarea>
+                  <button type="button" class="btn-ai-check" data-field="suc_alias" title="Revisar redacción con IA">&#9998;</button>
+                </div>
+                <p class="hint">Dejar vacío si no tiene alias.</p>
+              </div>
+              <div class="field">
+                <label for="suc_fecha_defuncion">Fecha de fallecimiento <span class="req">*</span></label>
+                <input type="text" id="suc_fecha_defuncion" name="suc_fecha_defuncion" placeholder="Ej: 26 de octubre de 2023" required>
+              </div>
+              <div class="field">
+                <label for="suc_ultimo_domicilio">Último domicilio del de cujus <span class="req">*</span></label>
+                <input type="text" id="suc_ultimo_domicilio" name="suc_ultimo_domicilio" placeholder="Ej: Calle Ónix 267, Col. Satélite, Querétaro, Qro." required>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- PASO 3: Datos del Demandado -->
+      <!-- PASO 3: Datos del Demandado (PP) / Comparecientes (Sucesorio) -->
       <section class="wizard-step" data-step="3">
-        <div class="card">
-          <h2 class="card-title">Datos del Demandado</h2>
-          <p class="card-desc">Información de la persona contra quien se dirige la demanda.</p>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-6">
-            <div class="field">
-              <label for="nombre_demandado">Nombre del demandado <span class="req">*</span></label>
-              <input type="text" id="nombre_demandado" name="nombre_demandado" placeholder="Ej: JONNATAN RODRÍGUEZ HERNÁNDEZ" required class="auto-uppercase">
-            </div>
-            <div class="field">
-              <label for="genero_demandado">Género del demandado <span class="req">*</span></label>
-              <select id="genero_demandado" name="genero_demandado" required>
-                <option value="">Seleccionar...</option>
-                <option value="hombre">Hombre</option>
-                <option value="mujer">Mujer</option>
-              </select>
-            </div>
-            <div class="field">
-              <label for="tipo_domicilio_demandado">Tipo de domicilio <span class="req">*</span></label>
-              <select id="tipo_domicilio_demandado" name="tipo_domicilio_demandado" required>
-                <option value="">Seleccionar...</option>
-                <option value="Domicilio Habitual">Domicilio Habitual</option>
-                <option value="Domicilio Laboral">Domicilio Laboral</option>
-              </select>
-            </div>
-            <div class="field">
-              <label for="empresa_demandado">Empresa del demandado</label>
-              <input type="text" id="empresa_demandado" name="empresa_demandado" placeholder="Nombre de la empresa donde labora">
-            </div>
-            <div class="field md:col-span-2">
-              <label for="domicilio_demandado">Domicilio del demandado <span class="req">*</span></label>
-              <div class="field-with-ai">
-                <textarea id="domicilio_demandado" name="domicilio_demandado" rows="2" placeholder="Dirección completa para emplazamiento" required spellcheck="true"></textarea>
-                <button type="button" class="btn-ai-check" data-field="domicilio_demandado" title="Revisar redacción con IA">&#9998;</button>
+        <!-- PP MODE -->
+        <div class="juicio-pp">
+          <div class="card">
+            <h2 class="card-title">Datos del Demandado</h2>
+            <p class="card-desc">Información de la persona contra quien se dirige la demanda.</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-6">
+              <div class="field">
+                <label for="nombre_demandado">Nombre del demandado <span class="req">*</span></label>
+                <input type="text" id="nombre_demandado" name="nombre_demandado" placeholder="Ej: JONNATAN RODRÍGUEZ HERNÁNDEZ" required class="auto-uppercase">
+              </div>
+              <div class="field">
+                <label for="genero_demandado">Género del demandado <span class="req">*</span></label>
+                <select id="genero_demandado" name="genero_demandado" required>
+                  <option value="">Seleccionar...</option>
+                  <option value="hombre">Hombre</option>
+                  <option value="mujer">Mujer</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="tipo_domicilio_demandado">Tipo de domicilio <span class="req">*</span></label>
+                <select id="tipo_domicilio_demandado" name="tipo_domicilio_demandado" required>
+                  <option value="">Seleccionar...</option>
+                  <option value="Domicilio Habitual">Domicilio Habitual</option>
+                  <option value="Domicilio Laboral">Domicilio Laboral</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="empresa_demandado">Empresa del demandado</label>
+                <input type="text" id="empresa_demandado" name="empresa_demandado" placeholder="Nombre de la empresa donde labora">
+              </div>
+              <div class="field md:col-span-2">
+                <label for="domicilio_demandado">Domicilio del demandado <span class="req">*</span></label>
+                <div class="field-with-ai">
+                  <textarea id="domicilio_demandado" name="domicilio_demandado" rows="2" placeholder="Dirección completa para emplazamiento" required spellcheck="true"></textarea>
+                  <button type="button" class="btn-ai-check" data-field="domicilio_demandado" title="Revisar redacción con IA">&#9998;</button>
+                </div>
+              </div>
+              <div class="field md:col-span-2">
+                <label for="domicilio_empresa_demandado">Domicilio de la empresa</label>
+                <textarea id="domicilio_empresa_demandado" name="domicilio_empresa_demandado" rows="2" placeholder="Dirección de la empresa (si aplica)" spellcheck="true"></textarea>
+              </div>
+              <div class="field">
+                <label for="puesto_demandado">Puesto del demandado</label>
+                <input type="text" id="puesto_demandado" name="puesto_demandado" placeholder="Ej: Auxiliar de Secretaría Técnica">
+              </div>
+              <div class="field">
+                <label for="sueldo_demandado">Sueldo del demandado</label>
+                <input type="text" id="sueldo_demandado" name="sueldo_demandado" placeholder="Ej: 20629.94" class="auto-sueldo">
+                <p class="hint sueldo-preview"></p>
               </div>
             </div>
-            <div class="field md:col-span-2">
-              <label for="domicilio_empresa_demandado">Domicilio de la empresa</label>
-              <textarea id="domicilio_empresa_demandado" name="domicilio_empresa_demandado" rows="2" placeholder="Dirección de la empresa (si aplica)" spellcheck="true"></textarea>
-            </div>
-            <div class="field">
-              <label for="puesto_demandado">Puesto del demandado</label>
-              <input type="text" id="puesto_demandado" name="puesto_demandado" placeholder="Ej: Auxiliar de Secretaría Técnica">
-            </div>
-            <div class="field">
-              <label for="sueldo_demandado">Sueldo del demandado</label>
-              <input type="text" id="sueldo_demandado" name="sueldo_demandado" placeholder="Ej: 20629.94" class="auto-sueldo">
-              <p class="hint sueldo-preview"></p>
+          </div>
+        </div>
+        <!-- SUCESORIO MODE -->
+        <div class="juicio-sucesorio hidden">
+          <div class="card">
+            <h2 class="card-title">Cónyuge Supérstite</h2>
+            <p class="card-desc">Si el de cujus estaba casado al momento de fallecer, indique los datos del matrimonio.</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-6">
+              <div class="field">
+                <label for="suc_conyuge_comparece">¿Hay cónyuge supérstite que comparece? <span class="req">*</span></label>
+                <select id="suc_conyuge_comparece" name="suc_conyuge_comparece" required>
+                  <option value="">Seleccionar...</option>
+                  <option value="No">No (solo hijos comparecen)</option>
+                  <option value="Sí">Sí (cónyuge + hijos comparecen)</option>
+                </select>
+              </div>
+              <div class="field conditional" data-show-when="suc_conyuge_comparece=Sí" style="display:none;">
+                <label for="suc_nombre_conyuge">Nombre del cónyuge <span class="req">*</span></label>
+                <input type="text" id="suc_nombre_conyuge" name="suc_nombre_conyuge" placeholder="Ej: FRANCISCO CONCEPCIÓN RICO RANGEL" class="auto-uppercase">
+              </div>
+              <div class="field conditional" data-show-when="suc_conyuge_comparece=Sí" style="display:none;">
+                <label for="suc_regimen_matrimonial">Régimen matrimonial <span class="req">*</span></label>
+                <select id="suc_regimen_matrimonial" name="suc_regimen_matrimonial">
+                  <option value="">Seleccionar...</option>
+                  <option value="sociedad conyugal">Sociedad conyugal</option>
+                  <option value="separación de bienes">Separación de bienes</option>
+                  <option value="sociedad legal">Sociedad legal</option>
+                  <option value="no definido">No definido</option>
+                </select>
+              </div>
+              <div class="field conditional" data-show-when="suc_conyuge_comparece=Sí" style="display:none;">
+                <label for="suc_fecha_matrimonio">Fecha del matrimonio</label>
+                <input type="text" id="suc_fecha_matrimonio" name="suc_fecha_matrimonio" placeholder="Ej: 24 de mayo de 1971">
+              </div>
+              <div class="field md:col-span-2 conditional" data-show-when="suc_conyuge_comparece=Sí" style="display:none;">
+                <label for="suc_datos_acta_matrimonio">Datos del acta de matrimonio</label>
+                <input type="text" id="suc_datos_acta_matrimonio" name="suc_datos_acta_matrimonio" placeholder="Ej: acta número 95, libro 1, oficialía 1, Atotonilco El Alto, Jalisco">
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- PASO 4: Datos de los Menores (DINÁMICO) -->
+      <!-- PASO 4: Menores (PP) / Hijos del de cujus (Sucesorio) -->
       <section class="wizard-step" data-step="4">
-        <div class="card">
-          <h2 class="card-title">Datos de los Menores</h2>
-          <p class="card-desc">Información de los menores involucrados en el procedimiento. Puede agregar hasta 10 menores.</p>
-
-          <div id="menores-container">
-            <!-- Se genera dinámicamente desde app.js -->
+        <!-- PP MODE -->
+        <div class="juicio-pp">
+          <div class="card">
+            <h2 class="card-title">Datos de los Menores</h2>
+            <p class="card-desc">Información de los menores involucrados en el procedimiento. Puede agregar hasta 10 menores.</p>
+            <div id="menores-container"></div>
+            <div class="flex items-center gap-3 mt-4">
+              <button type="button" id="btn-add-menor" class="btn-add-menor">+ Agregar otro menor</button>
+              <span id="menores-count" class="text-sm text-gray-400"></span>
+            </div>
           </div>
-
-          <div class="flex items-center gap-3 mt-4">
-            <button type="button" id="btn-add-menor" class="btn-add-menor">+ Agregar otro menor</button>
-            <span id="menores-count" class="text-sm text-gray-400"></span>
+        </div>
+        <!-- SUCESORIO MODE -->
+        <div class="juicio-sucesorio hidden">
+          <div class="card">
+            <h2 class="card-title">Hijos del De Cujus</h2>
+            <p class="card-desc">Liste a todos los hijos (vivos y fallecidos). Indique cuáles comparecen en el juicio.</p>
+            <div class="grid grid-cols-1 gap-5 mt-6">
+              <div class="field">
+                <label for="suc_hijos_comparecientes">Hijos que comparecen (nombres completos) <span class="req">*</span></label>
+                <div class="field-with-ai">
+                  <textarea id="suc_hijos_comparecientes" name="suc_hijos_comparecientes" rows="3" placeholder="Ej: FERNANDO, MARCO ANTONIO, JOSÉ LUIS, ANTONIO, JOSÉ GUADALUPE, GUILLERMINA, ARACELI de apellidos CONCHAS GONZÁLEZ" required spellcheck="true"></textarea>
+                  <button type="button" class="btn-ai-check" data-field="suc_hijos_comparecientes" title="Revisar redacción con IA">&#9998;</button>
+                </div>
+                <p class="hint">Escriba los nombres separados por coma. Incluya apellidos al final si son compartidos.</p>
+              </div>
+              <div class="field">
+                <label for="suc_total_hijos">Número total de hijos (vivos + fallecidos) <span class="req">*</span></label>
+                <input type="number" id="suc_total_hijos" name="suc_total_hijos" placeholder="Ej: 7" min="1" max="20" required>
+              </div>
+              <div class="field">
+                <label for="suc_hijos_fallecidos">¿Hay hijos fallecidos?</label>
+                <select id="suc_hijos_fallecidos" name="suc_hijos_fallecidos">
+                  <option value="No">No</option>
+                  <option value="Sí">Sí</option>
+                </select>
+              </div>
+              <div class="field conditional" data-show-when="suc_hijos_fallecidos=Sí" style="display:none;">
+                <label for="suc_detalle_hijos_fallecidos">Detalle de hijos fallecidos</label>
+                <div class="field-with-ai">
+                  <textarea id="suc_detalle_hijos_fallecidos" name="suc_detalle_hijos_fallecidos" rows="3" placeholder="Ej: VICTORIANO MARTÍNEZ GUTIÉRREZ falleció, tuvo 4 hijos: JOSÉ SALVADOR, JESÚS MANUEL, MARÍA MONSERRAT y VÍCTOR DANIEL de apellidos MARTÍNEZ MARTÍNEZ" spellcheck="true"></textarea>
+                  <button type="button" class="btn-ai-check" data-field="suc_detalle_hijos_fallecidos" title="Revisar redacción con IA">&#9998;</button>
+                </div>
+                <p class="hint">Los nietos del de cujus heredan por estirpe en lugar del hijo fallecido.</p>
+              </div>
+              <div class="field">
+                <label for="suc_domicilios_interesados">Domicilios de interesados NO comparecientes</label>
+                <div class="field-with-ai">
+                  <textarea id="suc_domicilios_interesados" name="suc_domicilios_interesados" rows="4" placeholder="Un interesado por línea con su domicilio. Ej:&#10;REYNA GUADALUPE RICO VARGAS: Calle Corregidora Norte 39, Santa Rosa Jauregui, Qro.&#10;JOSÉ SUSANO MARTÍNEZ GUTIÉRREZ: Calle Cadereyta s/n, Guadalupe la Venta, El Marqués, Qro." spellcheck="true"></textarea>
+                  <button type="button" class="btn-ai-check" data-field="suc_domicilios_interesados" title="Revisar redacción con IA">&#9998;</button>
+                </div>
+                <p class="hint">Hijos u otros interesados que no firman el escrito pero deben ser notificados.</p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      <!-- PASO 5: Representación Legal -->
+      <!-- PASO 5: Representación Legal (PP) / Representación Legal (Sucesorio) -->
       <section class="wizard-step" data-step="5">
-        <div class="card">
-          <h2 class="card-title">Representación Legal</h2>
-          <p class="card-desc">Abogados autorizados y personas para recibir notificaciones.</p>
-          <div class="grid grid-cols-1 gap-5 mt-6">
-            <div class="field">
-              <label for="abogados_autorizados">Abogados autorizados <span class="req">*</span></label>
-              <div class="flex gap-2 mb-1">
-                <button type="button" id="btn-template-abogado" class="btn-template" title="Insertar plantilla">Usar plantilla</button>
+        <!-- PP MODE -->
+        <div class="juicio-pp">
+          <div class="card">
+            <h2 class="card-title">Representación Legal</h2>
+            <p class="card-desc">Abogados autorizados y personas para recibir notificaciones.</p>
+            <div class="grid grid-cols-1 gap-5 mt-6">
+              <div class="field">
+                <label for="abogados_autorizados">Abogados autorizados <span class="req">*</span></label>
+                <div class="flex gap-2 mb-1">
+                  <button type="button" id="btn-template-abogado" class="btn-template" title="Insertar plantilla">Usar plantilla</button>
+                </div>
+                <div class="field-with-ai">
+                  <textarea id="abogados_autorizados" name="abogados_autorizados" rows="4" placeholder="LIC. NOMBRE, con Cédula Profesional número XXXX, inscrita en el TSJ bajo el Folio número XXX; y/o LIC. NOMBRE2..." required spellcheck="true"></textarea>
+                  <button type="button" class="btn-ai-check" data-field="abogados_autorizados" title="Revisar redacción con IA">&#9998;</button>
+                </div>
               </div>
-              <div class="field-with-ai">
-                <textarea id="abogados_autorizados" name="abogados_autorizados" rows="4" placeholder="LIC. NOMBRE, con Cédula Profesional número XXXX, inscrita en el TSJ bajo el Folio número XXX; y/o LIC. NOMBRE2..." required spellcheck="true"></textarea>
-                <button type="button" class="btn-ai-check" data-field="abogados_autorizados" title="Revisar redacción con IA">&#9998;</button>
+              <div class="field">
+                <label for="persona_autorizada_notificaciones">Persona autorizada para notificaciones</label>
+                <input type="text" id="persona_autorizada_notificaciones" name="persona_autorizada_notificaciones" placeholder="Nombre de persona adicional autorizada" class="auto-uppercase">
+              </div>
+              <div class="field">
+                <label for="tiene_procedimiento_previo">¿Tiene procedimiento previo? <span class="req">*</span></label>
+                <select id="tiene_procedimiento_previo" name="tiene_procedimiento_previo" required>
+                  <option value="">Seleccionar...</option>
+                  <option value="No">No</option>
+                  <option value="Sí">Sí</option>
+                </select>
+              </div>
+              <div class="field conditional" data-show-when="tiene_procedimiento_previo=Sí" style="display:none;">
+                <label for="texto_procedimiento_previo">Texto del procedimiento previo</label>
+                <div class="field-with-ai">
+                  <textarea id="texto_procedimiento_previo" name="texto_procedimiento_previo" rows="3" placeholder="Ej: existe procedimiento 351/23 radicado en el Juzgado Segundo Familiar..." spellcheck="true"></textarea>
+                  <button type="button" class="btn-ai-check" data-field="texto_procedimiento_previo" title="Revisar redacción con IA">&#9998;</button>
+                </div>
               </div>
             </div>
-            <div class="field">
-              <label for="persona_autorizada_notificaciones">Persona autorizada para notificaciones</label>
-              <input type="text" id="persona_autorizada_notificaciones" name="persona_autorizada_notificaciones" placeholder="Nombre de persona adicional autorizada" class="auto-uppercase">
-            </div>
-            <div class="field">
-              <label for="tiene_procedimiento_previo">¿Tiene procedimiento previo? <span class="req">*</span></label>
-              <select id="tiene_procedimiento_previo" name="tiene_procedimiento_previo" required>
-                <option value="">Seleccionar...</option>
-                <option value="No">No</option>
-                <option value="Sí">Sí</option>
-              </select>
-            </div>
-            <div class="field conditional" data-show-when="tiene_procedimiento_previo=Sí" style="display:none;">
-              <label for="texto_procedimiento_previo">Texto del procedimiento previo</label>
-              <div class="field-with-ai">
-                <textarea id="texto_procedimiento_previo" name="texto_procedimiento_previo" rows="3" placeholder="Ej: existe procedimiento 351/23 radicado en el Juzgado Segundo Familiar..." spellcheck="true"></textarea>
-                <button type="button" class="btn-ai-check" data-field="texto_procedimiento_previo" title="Revisar redacción con IA">&#9998;</button>
+          </div>
+        </div>
+        <!-- SUCESORIO MODE -->
+        <div class="juicio-sucesorio hidden">
+          <div class="card">
+            <h2 class="card-title">Representación Legal y Domicilio Procesal</h2>
+            <p class="card-desc">Abogados autorizados, domicilio para notificaciones y representante común.</p>
+            <div class="grid grid-cols-1 gap-5 mt-6">
+              <div class="field">
+                <label for="suc_domicilio_procesal">Domicilio procesal <span class="req">*</span></label>
+                <div class="field-with-ai">
+                  <textarea id="suc_domicilio_procesal" name="suc_domicilio_procesal" rows="2" placeholder="Ej: calle Fray Juan de Torquemada número 145, Colonia Quintas del Marqués, Querétaro" required spellcheck="true"></textarea>
+                  <button type="button" class="btn-ai-check" data-field="suc_domicilio_procesal" title="Revisar redacción con IA">&#9998;</button>
+                </div>
+              </div>
+              <div class="field">
+                <label for="suc_abogados_autorizados">Abogados autorizados <span class="req">*</span></label>
+                <div class="flex gap-2 mb-1">
+                  <button type="button" id="btn-template-abogado-suc" class="btn-template" title="Insertar plantilla">Usar plantilla</button>
+                </div>
+                <div class="field-with-ai">
+                  <textarea id="suc_abogados_autorizados" name="suc_abogados_autorizados" rows="4" placeholder="LIC. NOMBRE con cédula profesional número XXXX, inscrita en el TSJ bajo el folio XXXX" required spellcheck="true"></textarea>
+                  <button type="button" class="btn-ai-check" data-field="suc_abogados_autorizados" title="Revisar redacción con IA">&#9998;</button>
+                </div>
+              </div>
+              <div class="field">
+                <label for="suc_persona_autorizada">Persona autorizada para notificaciones</label>
+                <input type="text" id="suc_persona_autorizada" name="suc_persona_autorizada" placeholder="Ej: ELVIRA ARVIZU GARCÍA" class="auto-uppercase">
+              </div>
+              <div class="field">
+                <label for="suc_representante_comun">Representante común</label>
+                <input type="text" id="suc_representante_comun" name="suc_representante_comun" placeholder="Nombre si se nombra representante común (opcional)" class="auto-uppercase">
+                <p class="hint">Solo si los comparecientes nombran a uno de ellos como representante.</p>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- PASO 6: Prestaciones -->
+      <!-- PASO 6: Prestaciones (PP) / Albacea y Repudio (Sucesorio) -->
       <section class="wizard-step" data-step="6">
-        <div class="card">
-          <h2 class="card-title">Prestaciones Solicitadas</h2>
-          <p class="card-desc">Configure las prestaciones que se solicitan en la demanda.</p>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-6">
-            <div class="field">
-              <label for="incluye_custodia">¿Incluye custodia? <span class="req">*</span></label>
-              <select id="incluye_custodia" name="incluye_custodia" required>
-                <option value="">Seleccionar...</option>
-                <option value="No">No</option>
-                <option value="Sí">Sí</option>
-              </select>
+        <!-- PP MODE -->
+        <div class="juicio-pp">
+          <div class="card">
+            <h2 class="card-title">Prestaciones Solicitadas</h2>
+            <p class="card-desc">Configure las prestaciones que se solicitan en la demanda.</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-6">
+              <div class="field">
+                <label for="incluye_custodia">¿Incluye custodia? <span class="req">*</span></label>
+                <select id="incluye_custodia" name="incluye_custodia" required>
+                  <option value="">Seleccionar...</option>
+                  <option value="No">No</option>
+                  <option value="Sí">Sí</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="incluye_alimentos">¿Incluye alimentos? <span class="req">*</span></label>
+                <select id="incluye_alimentos" name="incluye_alimentos" required>
+                  <option value="">Seleccionar...</option>
+                  <option value="No">No</option>
+                  <option value="Sí">Sí</option>
+                </select>
+              </div>
+              <div class="field conditional" data-show-when="incluye_alimentos=Sí" style="display:none;">
+                <label for="porcentaje_pension">Porcentaje de pensión</label>
+                <input type="text" id="porcentaje_pension" name="porcentaje_pension" placeholder="Ej: 35">
+                <p class="hint pension-letra-preview"></p>
+              </div>
+              <div class="field conditional" data-show-when="incluye_alimentos=Sí" style="display:none;">
+                <label for="porcentaje_pension_letra">Porcentaje en letra</label>
+                <input type="text" id="porcentaje_pension_letra" name="porcentaje_pension_letra" placeholder="Se calcula automáticamente" readonly class="bg-gray-100">
+              </div>
+              <div class="field md:col-span-2">
+                <label for="incluye_bloqueo_vehicular">¿Incluye bloqueo vehicular?</label>
+                <select id="incluye_bloqueo_vehicular" name="incluye_bloqueo_vehicular">
+                  <option value="No">No</option>
+                  <option value="Sí">Sí</option>
+                </select>
+              </div>
+              <div class="field conditional" data-show-when="incluye_bloqueo_vehicular=Sí" style="display:none;">
+                <label for="curp_demandado">CURP del demandado</label>
+                <input type="text" id="curp_demandado" name="curp_demandado" placeholder="18 caracteres" maxlength="18" class="auto-uppercase">
+                <p class="hint curp-validation-hint"></p>
+              </div>
+              <div class="field conditional" data-show-when="incluye_bloqueo_vehicular=Sí" style="display:none;">
+                <label for="rfc_demandado">RFC del demandado</label>
+                <input type="text" id="rfc_demandado" name="rfc_demandado" placeholder="13 caracteres" maxlength="13" class="auto-uppercase">
+                <p class="hint rfc-validation-hint"></p>
+              </div>
+              <div class="field conditional" data-show-when="incluye_bloqueo_vehicular=Sí" style="display:none;">
+                <label for="fecha_nacimiento_demandado">Fecha nacimiento demandado</label>
+                <input type="text" id="fecha_nacimiento_demandado" name="fecha_nacimiento_demandado" placeholder="Ej: 15 de agosto de 1990">
+              </div>
             </div>
-            <div class="field">
-              <label for="incluye_alimentos">¿Incluye alimentos? <span class="req">*</span></label>
-              <select id="incluye_alimentos" name="incluye_alimentos" required>
-                <option value="">Seleccionar...</option>
-                <option value="No">No</option>
-                <option value="Sí">Sí</option>
-              </select>
-            </div>
-            <div class="field conditional" data-show-when="incluye_alimentos=Sí" style="display:none;">
-              <label for="porcentaje_pension">Porcentaje de pensión</label>
-              <input type="text" id="porcentaje_pension" name="porcentaje_pension" placeholder="Ej: 35">
-              <p class="hint pension-letra-preview"></p>
-            </div>
-            <div class="field conditional" data-show-when="incluye_alimentos=Sí" style="display:none;">
-              <label for="porcentaje_pension_letra">Porcentaje en letra</label>
-              <input type="text" id="porcentaje_pension_letra" name="porcentaje_pension_letra" placeholder="Se calcula automáticamente" readonly class="bg-gray-100">
-            </div>
-            <div class="field md:col-span-2">
-              <label for="incluye_bloqueo_vehicular">¿Incluye bloqueo vehicular?</label>
-              <select id="incluye_bloqueo_vehicular" name="incluye_bloqueo_vehicular">
-                <option value="No">No</option>
-                <option value="Sí">Sí</option>
-              </select>
-            </div>
-            <div class="field conditional" data-show-when="incluye_bloqueo_vehicular=Sí" style="display:none;">
-              <label for="curp_demandado">CURP del demandado</label>
-              <input type="text" id="curp_demandado" name="curp_demandado" placeholder="18 caracteres" maxlength="18" class="auto-uppercase">
-              <p class="hint curp-validation-hint"></p>
-            </div>
-            <div class="field conditional" data-show-when="incluye_bloqueo_vehicular=Sí" style="display:none;">
-              <label for="rfc_demandado">RFC del demandado</label>
-              <input type="text" id="rfc_demandado" name="rfc_demandado" placeholder="13 caracteres" maxlength="13" class="auto-uppercase">
-              <p class="hint rfc-validation-hint"></p>
-            </div>
-            <div class="field conditional" data-show-when="incluye_bloqueo_vehicular=Sí" style="display:none;">
-              <label for="fecha_nacimiento_demandado">Fecha nacimiento demandado</label>
-              <input type="text" id="fecha_nacimiento_demandado" name="fecha_nacimiento_demandado" placeholder="Ej: 15 de agosto de 1990">
+          </div>
+        </div>
+        <!-- SUCESORIO MODE -->
+        <div class="juicio-sucesorio hidden">
+          <div class="card">
+            <h2 class="card-title">Albacea y Repudio</h2>
+            <p class="card-desc">Indique quién será el albacea propuesto y si hay repudio de herencia.</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-6">
+              <div class="field md:col-span-2">
+                <label for="suc_albacea_propuesto">Albacea propuesto <span class="req">*</span></label>
+                <input type="text" id="suc_albacea_propuesto" name="suc_albacea_propuesto" placeholder="Ej: FRANCISCO CONCEPCIÓN RICO RANGEL" required class="auto-uppercase">
+                <p class="hint">Persona que los comparecientes proponen para administrar la herencia.</p>
+              </div>
+              <div class="field">
+                <label for="suc_hay_repudio">¿Los hijos repudian la herencia? <span class="req">*</span></label>
+                <select id="suc_hay_repudio" name="suc_hay_repudio" required>
+                  <option value="">Seleccionar...</option>
+                  <option value="No">No (herencia normal entre todos)</option>
+                  <option value="Sí">Sí (hijos ceden derechos a favor de alguien)</option>
+                </select>
+              </div>
+              <div class="field conditional" data-show-when="suc_hay_repudio=Sí" style="display:none;">
+                <label for="suc_beneficiario_repudio">Beneficiario del repudio <span class="req">*</span></label>
+                <input type="text" id="suc_beneficiario_repudio" name="suc_beneficiario_repudio" placeholder="Ej: M. GUADALUPE GONZÁLEZ CASILLAS (la madre)" class="auto-uppercase">
+                <p class="hint">Persona a cuyo favor los hijos ceden sus derechos hereditarios.</p>
+              </div>
+              <div class="field md:col-span-2">
+                <label for="suc_declaraciones_adicionales">Declaraciones adicionales sobre el de cujus</label>
+                <div class="field-with-ai">
+                  <textarea id="suc_declaraciones_adicionales" name="suc_declaraciones_adicionales" rows="3" placeholder="Ej: El de cujus no tuvo otro matrimonio, no adoptó hijos, ni tuvo concubinato. No dejó disposición testamentaria ni dejó deudas." spellcheck="true"></textarea>
+                  <button type="button" class="btn-ai-check" data-field="suc_declaraciones_adicionales" title="Revisar redacción con IA">&#9998;</button>
+                </div>
+                <p class="hint">Información que aclare la situación legal del de cujus (otros matrimonios, concubinatos, testamento, deudas).</p>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- PASO 7: Pruebas -->
+      <!-- PASO 7: Pruebas (PP) / Testigos (Sucesorio) -->
       <section class="wizard-step" data-step="7">
-        <div class="card">
-          <h2 class="card-title">Pruebas y Jurisprudencia</h2>
-          <p class="card-desc">Documentales, testigos y búsqueda de jurisprudencia de apoyo.</p>
-          <div class="grid grid-cols-1 gap-5 mt-6">
-            <div class="field">
-              <label for="lista_documentales">Lista de documentales <span class="req">*</span></label>
-              <div class="field-with-ai">
-                <textarea id="lista_documentales" name="lista_documentales" rows="4" placeholder="Lista de documentos que se anexan como prueba, separados por salto de línea." required spellcheck="true"></textarea>
-                <button type="button" class="btn-ai-check" data-field="lista_documentales" title="Revisar redacción con IA">&#9998;</button>
+        <!-- PP MODE -->
+        <div class="juicio-pp">
+          <div class="card">
+            <h2 class="card-title">Pruebas y Jurisprudencia</h2>
+            <p class="card-desc">Documentales, testigos y búsqueda de jurisprudencia de apoyo.</p>
+            <div class="grid grid-cols-1 gap-5 mt-6">
+              <div class="field">
+                <label for="lista_documentales">Lista de documentales <span class="req">*</span></label>
+                <div class="field-with-ai">
+                  <textarea id="lista_documentales" name="lista_documentales" rows="4" placeholder="Lista de documentos que se anexan como prueba, separados por salto de línea." required spellcheck="true"></textarea>
+                  <button type="button" class="btn-ai-check" data-field="lista_documentales" title="Revisar redacción con IA">&#9998;</button>
+                </div>
+              </div>
+              <div class="field">
+                <label for="tiene_testigos">¿Tiene testigos? <span class="req">*</span></label>
+                <select id="tiene_testigos" name="tiene_testigos" required>
+                  <option value="">Seleccionar...</option>
+                  <option value="No">No</option>
+                  <option value="Sí">Sí</option>
+                </select>
+              </div>
+              <div class="field conditional" data-show-when="tiene_testigos=Sí" style="display:none;">
+                <label for="nombres_testigos">Nombres de los testigos</label>
+                <input type="text" id="nombres_testigos" name="nombres_testigos" placeholder="Ej: JUAN PÉREZ y MARÍA LÓPEZ" class="auto-uppercase">
+              </div>
+              <div class="field">
+                <label for="palabras_clave_jurisprudencia">Palabras clave para jurisprudencia</label>
+                <textarea id="palabras_clave_jurisprudencia" name="palabras_clave_jurisprudencia" rows="2" placeholder="Ej: abandono de menores, incumplimiento alimentario, violencia familiar" spellcheck="true"></textarea>
+                <p class="hint">Opcional. Agrega palabras clave para sustentar tu escrito con jurisprudencia relevante.</p>
               </div>
             </div>
-            <div class="field">
-              <label for="tiene_testigos">¿Tiene testigos? <span class="req">*</span></label>
-              <select id="tiene_testigos" name="tiene_testigos" required>
-                <option value="">Seleccionar...</option>
-                <option value="No">No</option>
-                <option value="Sí">Sí</option>
-              </select>
+          </div>
+        </div>
+        <!-- SUCESORIO MODE -->
+        <div class="juicio-sucesorio hidden">
+          <div class="card">
+            <h2 class="card-title">Testigos para Información Testimonial</h2>
+            <p class="card-desc">Dos testigos que declararán ante el juzgado sobre la familia del de cujus.</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-6">
+              <div class="field">
+                <label for="suc_testigo_1">Primer testigo <span class="req">*</span></label>
+                <input type="text" id="suc_testigo_1" name="suc_testigo_1" placeholder="Ej: JONÁS VARGAS VARGAS" required class="auto-uppercase">
+              </div>
+              <div class="field">
+                <label for="suc_testigo_2">Segundo testigo <span class="req">*</span></label>
+                <input type="text" id="suc_testigo_2" name="suc_testigo_2" placeholder="Ej: GUSTAVO GARFIAS VARGAS" required class="auto-uppercase">
+              </div>
             </div>
-            <div class="field conditional" data-show-when="tiene_testigos=Sí" style="display:none;">
-              <label for="nombres_testigos">Nombres de los testigos</label>
-              <input type="text" id="nombres_testigos" name="nombres_testigos" placeholder="Ej: JUAN PÉREZ y MARÍA LÓPEZ" class="auto-uppercase">
-            </div>
-            <div class="field">
-              <label for="palabras_clave_jurisprudencia">Palabras clave para jurisprudencia</label>
-              <textarea id="palabras_clave_jurisprudencia" name="palabras_clave_jurisprudencia" rows="2" placeholder="Ej: abandono de menores, incumplimiento alimentario, violencia familiar" spellcheck="true"></textarea>
-              <p class="hint">Opcional. Agrega palabras clave para sustentar tu escrito con jurisprudencia relevante.</p>
+          </div>
+          <div class="card mt-4">
+            <h2 class="card-title">Documentos Anexos</h2>
+            <p class="card-desc">Actas y documentos que se anexan al escrito.</p>
+            <div class="grid grid-cols-1 gap-5 mt-6">
+              <div class="field">
+                <label for="suc_lista_documentales">Lista de documentos <span class="req">*</span></label>
+                <div class="field-with-ai">
+                  <textarea id="suc_lista_documentales" name="suc_lista_documentales" rows="5" placeholder="Un documento por línea. Ej:&#10;Copia certificada del acta de defunción del de cujus&#10;Copia certificada del acta de matrimonio&#10;Copias certificadas de actas de nacimiento de los hijos&#10;Acta de defunción de VICTORIANO MARTÍNEZ GUTIÉRREZ (hijo fallecido)" required spellcheck="true"></textarea>
+                  <button type="button" class="btn-ai-check" data-field="suc_lista_documentales" title="Revisar redacción con IA">&#9998;</button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -348,29 +594,56 @@
 
       <!-- PASO 8: Hechos y Envío -->
       <section class="wizard-step" data-step="8">
-        <div class="card">
-          <h2 class="card-title">Hechos del Caso y Envío</h2>
-          <p class="card-desc">Narre los hechos y seleccione dónde recibir el documento generado.</p>
-          <div class="grid grid-cols-1 gap-5 mt-6">
-            <div class="field">
-              <label for="narrativa_hechos">Narrativa de los hechos <span class="req">*</span></label>
-              <div class="field-with-ai">
-                <textarea id="narrativa_hechos" name="narrativa_hechos" rows="6" placeholder="Describe los hechos del caso en texto libre. Sea lo más detallado posible." required spellcheck="true"></textarea>
-                <button type="button" class="btn-ai-check" data-field="narrativa_hechos" title="Revisar redacción con IA">&#9998;</button>
+        <!-- PP MODE -->
+        <div class="juicio-pp">
+          <div class="card">
+            <h2 class="card-title">Hechos del Caso y Envío</h2>
+            <p class="card-desc">Narre los hechos y seleccione dónde recibir el documento generado.</p>
+            <div class="grid grid-cols-1 gap-5 mt-6">
+              <div class="field">
+                <label for="narrativa_hechos">Narrativa de los hechos <span class="req">*</span></label>
+                <div class="field-with-ai">
+                  <textarea id="narrativa_hechos" name="narrativa_hechos" rows="6" placeholder="Describe los hechos del caso en texto libre. Sea lo más detallado posible." required spellcheck="true"></textarea>
+                  <button type="button" class="btn-ai-check" data-field="narrativa_hechos" title="Revisar redacción con IA">&#9998;</button>
+                </div>
+              </div>
+              <div class="field">
+                <label for="chat_id_telegram">Enviar documento a <span class="req">*</span></label>
+                <select id="chat_id_telegram" name="chat_id_telegram" required>
+                  <option value="">Seleccionar destinatario...</option>
+                  <option value="6295473990">Multi Agent</option>
+                  <option value="1171270516">Veronica Garfias</option>
+                </select>
               </div>
             </div>
-            <div class="field">
-              <label for="chat_id_telegram">Enviar documento a <span class="req">*</span></label>
-              <select id="chat_id_telegram" name="chat_id_telegram" required>
-                <option value="">Seleccionar destinatario...</option>
-                <option value="6295473990">Multi Agent</option>
-                <option value="1171270516">Veronica Garfias</option>
-              </select>
+          </div>
+        </div>
+        <!-- SUCESORIO MODE -->
+        <div class="juicio-sucesorio hidden">
+          <div class="card">
+            <h2 class="card-title">Narrativa de los Hechos y Envío</h2>
+            <p class="card-desc">Narre los hechos del caso: matrimonio, hijos, fallecimiento, circunstancias relevantes.</p>
+            <div class="grid grid-cols-1 gap-5 mt-6">
+              <div class="field">
+                <label for="suc_narrativa_hechos">Narrativa de los hechos <span class="req">*</span></label>
+                <div class="field-with-ai">
+                  <textarea id="suc_narrativa_hechos" name="suc_narrativa_hechos" rows="8" placeholder="Describa los hechos: cuándo se casaron, cuántos hijos tuvieron, cuándo falleció el de cujus, último domicilio, si dejó testamento, si hay hijos que repudian, quién será albacea, etc. Sea lo más detallado posible." required spellcheck="true"></textarea>
+                  <button type="button" class="btn-ai-check" data-field="suc_narrativa_hechos" title="Revisar redacción con IA">&#9998;</button>
+                </div>
+              </div>
+              <div class="field">
+                <label for="suc_chat_id_telegram">Enviar documento a <span class="req">*</span></label>
+                <select id="suc_chat_id_telegram" name="suc_chat_id_telegram" required>
+                  <option value="">Seleccionar destinatario...</option>
+                  <option value="6295473990">Multi Agent</option>
+                  <option value="1171270516">Veronica Garfias</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- Resumen -->
+        <!-- Resumen (compartido) -->
         <div class="card mt-4">
           <h3 class="text-lg font-semibold text-primary-900 mb-3">Resumen del caso</h3>
           <div id="summary" class="text-sm text-gray-700 space-y-1"></div>

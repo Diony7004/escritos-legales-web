@@ -4,6 +4,7 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const WEBHOOK_URL = process.env.WEBHOOK_URL || 'https://paneln8n.multi-agent-ai.com/webhook/escritos-legales';
+const WEBHOOK_URL_SUCESORIO = process.env.WEBHOOK_URL_SUCESORIO || 'https://paneln8n.multi-agent-ai.com/webhook/escritos-sucesorio';
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
 
 app.use(express.json({ limit: '1mb' }));
@@ -12,7 +13,11 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Proxy endpoint: recibe del wizard y reenvía al webhook de n8n
 app.post('/api/submit', async (req, res) => {
   try {
-    const response = await fetch(WEBHOOK_URL, {
+    // Route sucesorio to its own webhook
+    const isSucesorio = (req.body['Tipo de juicio'] || '').includes('Sucesorio');
+    const targetUrl = isSucesorio ? WEBHOOK_URL_SUCESORIO : WEBHOOK_URL;
+
+    const response = await fetch(targetUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(req.body),
@@ -119,12 +124,14 @@ app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok',
     webhook: WEBHOOK_URL,
+    webhook_sucesorio: WEBHOOK_URL_SUCESORIO,
     ai_check: OPENROUTER_API_KEY ? 'configured' : 'not configured',
   });
 });
 
 app.listen(PORT, () => {
   console.log(`Escritos Legales Web v2.0 corriendo en puerto ${PORT}`);
-  console.log(`Webhook destino: ${WEBHOOK_URL}`);
+  console.log(`Webhook PP: ${WEBHOOK_URL}`);
+  console.log(`Webhook Sucesorio: ${WEBHOOK_URL_SUCESORIO}`);
   console.log(`AI Check: ${OPENROUTER_API_KEY ? 'habilitado' : 'NO configurado (set OPENROUTER_API_KEY)'}`);
 });
