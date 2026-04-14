@@ -6,6 +6,15 @@ let menoresCount = 0;
 const MAX_MENORES = 10;
 let lastPayload = null; // for retry
 let juicioMode = 'pp'; // 'pp' or 'sucesorio'
+let etapaActual = 1;
+
+// Steps active per etapa (etapas 2-4 skip steps 3-7)
+const ETAPA_ACTIVE_STEPS = {
+  1: [1, 2, 3, 4, 5, 6, 7, 8],
+  2: [1, 2, 8],
+  3: [1, 2, 8],
+  4: [1, 2, 8],
+};
 
 const STEP_TITLES_PP = {
   1: 'Tipo de Juicio',
@@ -29,7 +38,32 @@ const STEP_TITLES_SUCESORIO = {
   8: 'Hechos y Envío',
 };
 
+// Step titles per etapa (only steps 1, 2, 8 matter for etapas 2-4)
+const STEP_TITLES_ETAPA = {
+  2: { 1: 'Tipo de Juicio', 2: 'Inventarios y Avalúos', 8: 'Revisión y Envío' },
+  3: { 1: 'Tipo de Juicio', 2: 'Cuentas de Albaceazgo', 8: 'Revisión y Envío' },
+  4: { 1: 'Tipo de Juicio', 2: 'Partición de Herencia', 8: 'Revisión y Envío' },
+};
+
 const STEP_TITLES = STEP_TITLES_PP;
+
+// Navigation helpers for step-skipping
+function getActiveSteps() {
+  if (juicioMode !== 'sucesorio') return [1, 2, 3, 4, 5, 6, 7, 8];
+  return ETAPA_ACTIVE_STEPS[etapaActual] || [1, 2, 3, 4, 5, 6, 7, 8];
+}
+
+function getNextStep(current) {
+  const active = getActiveSteps();
+  const idx = active.indexOf(current);
+  return idx >= 0 && idx < active.length - 1 ? active[idx + 1] : null;
+}
+
+function getPrevStep(current) {
+  const active = getActiveSteps();
+  const idx = active.indexOf(current);
+  return idx > 0 ? active[idx - 1] : null;
+}
 
 // ===== Fracciones data =====
 const FRACCIONES = {
@@ -127,6 +161,22 @@ const FIELD_LABELS = {
   suc_lista_documentales: 'Documentales',
   suc_narrativa_hechos: 'Hechos',
   suc_chat_id_telegram: 'Enviar a',
+  // Etapa 2 fields
+  suc_e2_sociedad_conyugal: 'Sociedad conyugal',
+  suc_e2_inmuebles: 'Descripción inmuebles',
+  suc_e2_anexos: 'Documentos anexos',
+  // Etapa 3 fields
+  suc_e3_ingresos: 'Ingresos',
+  suc_e3_gastos_detalle: 'Detalle gastos',
+  suc_e3_total_gastos: 'Total gastos',
+  suc_e3_nota_pagos: 'Nota pagos',
+  // Etapa 4 fields
+  suc_e4_tipo_particion: 'Tipo partición',
+  suc_e4_antecedentes: 'Antecedentes procesales',
+  suc_e4_proyecto_particion: 'Proyecto partición',
+  suc_e4_datos_notaria: 'Datos notaría',
+  suc_e4_datos_cuenta: 'Datos cuenta',
+  suc_e4_hay_desistimiento: 'Desistimiento previo',
 };
 
 const TELEGRAM_CONTACTS = {
@@ -692,6 +742,15 @@ function updateFieldProgress() {
     // Skip hidden wrappers
     const hiddenWrapper = f.closest('#fracciones-wrapper, #etapa-wrapper');
     if (hiddenWrapper && hiddenWrapper.classList.contains('hidden')) return;
+    // Skip hidden etapa-fields
+    const etapaBlock = f.closest('.etapa-fields');
+    if (etapaBlock && etapaBlock.classList.contains('hidden')) return;
+    // Skip fields in steps that are skipped for this etapa
+    const stepBlock = f.closest('.wizard-step');
+    if (stepBlock && juicioMode === 'sucesorio') {
+      const stepNum = parseInt(stepBlock.dataset.step);
+      if (!getActiveSteps().includes(stepNum)) return;
+    }
     // Skip hidden juzgado input if selector is used
     if (f.id === 'juzgado_destino' && f.classList.contains('hidden')) return;
     total++;
@@ -707,42 +766,71 @@ function updateFieldProgress() {
 function goToStep(step) {
   if (step < 1 || step > TOTAL_STEPS) return;
 
+  // Don't allow navigating to skipped steps
+  const active = getActiveSteps();
+  if (!active.includes(step)) return;
+
   if (step > currentStep && !validateStep(currentStep)) return;
 
   document.querySelectorAll('.wizard-step').forEach((s) => s.classList.remove('active'));
   const target = document.querySelector(`.wizard-step[data-step="${step}"]`);
   if (target) target.classList.add('active');
 
+  // Update step dots: active, completed, or skipped
   document.querySelectorAll('.step-dot').forEach((dot) => {
     const dotStep = parseInt(dot.dataset.step);
-    dot.classList.remove('active', 'completed');
-    if (dotStep === step) dot.classList.add('active');
-    else if (dotStep < step) dot.classList.add('completed');
+    dot.classList.remove('active', 'completed', 'step-dot-skipped');
+    if (!active.includes(dotStep)) {
+      dot.classList.add('step-dot-skipped');
+    } else if (dotStep === step) {
+      dot.classList.add('active');
+    } else if (active.indexOf(dotStep) < active.indexOf(step)) {
+      dot.classList.add('completed');
+    }
   });
 
   currentStep = step;
 
-  progressBar.style.width = `${(step / TOTAL_STEPS) * 100}%`;
-  stepLabel.textContent = `Paso ${step} de ${TOTAL_STEPS}`;
-  stepTitle.textContent = STEP_TITLES[step];
+  // Progress bar based on position within active steps
+  const stepIndex = active.indexOf(step);
+  const totalActive = active.length;
+  progressBar.style.width = `${((stepIndex + 1) / totalActive) * 100}%`;
+  stepLabel.textContent = `Paso ${stepIndex + 1} de ${totalActive}`;
 
-  btnPrev.classList.toggle('hidden', step === 1);
-  btnNext.classList.toggle('hidden', step === TOTAL_STEPS);
-  btnSubmit.classList.toggle('hidden', step !== TOTAL_STEPS);
+  // Step title: use etapa-specific titles for etapas 2-4
+  if (juicioMode === 'sucesorio' && etapaActual > 1 && STEP_TITLES_ETAPA[etapaActual]?.[step]) {
+    stepTitle.textContent = STEP_TITLES_ETAPA[etapaActual][step];
+  } else {
+    stepTitle.textContent = STEP_TITLES[step];
+  }
 
-  if (step === TOTAL_STEPS) buildSummary();
+  const isFirst = active.indexOf(step) === 0;
+  const isLast = active.indexOf(step) === active.length - 1;
+  btnPrev.classList.toggle('hidden', isFirst);
+  btnNext.classList.toggle('hidden', isLast);
+  btnSubmit.classList.toggle('hidden', !isLast);
+
+  if (isLast) buildSummary();
 
   updateFieldProgress();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-btnNext.addEventListener('click', () => goToStep(currentStep + 1));
-btnPrev.addEventListener('click', () => goToStep(currentStep - 1));
+btnNext.addEventListener('click', () => {
+  const next = getNextStep(currentStep);
+  if (next !== null) goToStep(next);
+});
+btnPrev.addEventListener('click', () => {
+  const prev = getPrevStep(currentStep);
+  if (prev !== null) goToStep(prev);
+});
 
 document.querySelectorAll('.step-dot').forEach((dot) => {
   dot.addEventListener('click', () => {
     const step = parseInt(dot.dataset.step);
-    if (step <= currentStep) goToStep(step);
+    const active = getActiveSteps();
+    if (!active.includes(step)) return;
+    if (active.indexOf(step) <= active.indexOf(currentStep)) goToStep(step);
   });
 });
 
@@ -766,6 +854,10 @@ function validateStep(step) {
     // Skip hidden wrappers (fracciones/etapa toggle)
     const hiddenWrapper = field.closest('#fracciones-wrapper, #etapa-wrapper');
     if (hiddenWrapper && hiddenWrapper.classList.contains('hidden')) return;
+
+    // Skip hidden etapa-fields
+    const etapaBlock = field.closest('.etapa-fields');
+    if (etapaBlock && etapaBlock.classList.contains('hidden')) return;
 
     // Skip hidden juzgado_destino if selector is not "otro"
     if (field.id === 'juzgado_destino' && field.classList.contains('hidden')) return;
@@ -1045,48 +1137,80 @@ function collectPayload() {
 
   // --- SUCESORIO MODE ---
   if (juicioMode === 'sucesorio') {
-    return {
+    const etapa = parseInt(data.etapa_sucesorio) || 1;
+
+    // Common fields for all etapas
+    const payload = {
       'Tipo de juicio': data.tipo_juicio || '',
-      'Etapa': data.etapa_sucesorio || '1',
+      'Etapa': String(etapa),
       'Juzgado destino': data.juzgado_destino || '',
       'Número de expediente': data.numero_expediente || '',
       'Fecha del escrito': data.fecha_escrito || '',
-      // De cujus
-      'Nombre de cujus': data.suc_nombre_de_cujus || '',
-      'Género de cujus': data.suc_genero_de_cujus || '',
-      'Alias': data.suc_alias || '',
-      'Fecha defunción': data.suc_fecha_defuncion || '',
-      'Último domicilio': data.suc_ultimo_domicilio || '',
-      // Cónyuge
-      'Cónyuge comparece': data.suc_conyuge_comparece || 'No',
-      'Nombre cónyuge': data.suc_nombre_conyuge || '',
-      'Régimen matrimonial': data.suc_regimen_matrimonial || '',
-      'Fecha matrimonio': data.suc_fecha_matrimonio || '',
-      'Datos acta matrimonio': data.suc_datos_acta_matrimonio || '',
-      // Hijos
-      'Hijos comparecientes': data.suc_hijos_comparecientes || '',
-      'Total hijos': data.suc_total_hijos || '',
-      'Hijos fallecidos': data.suc_hijos_fallecidos || 'No',
-      'Detalle hijos fallecidos': data.suc_detalle_hijos_fallecidos || '',
-      'Domicilios interesados': data.suc_domicilios_interesados || '',
-      // Representación
-      'Domicilio procesal': data.suc_domicilio_procesal || '',
-      'Abogados autorizados': data.suc_abogados_autorizados || '',
-      'Persona autorizada notificaciones': data.suc_persona_autorizada || '',
-      'Representante común': data.suc_representante_comun || '',
-      // Albacea y repudio
-      'Albacea propuesto': data.suc_albacea_propuesto || '',
-      'Hay repudio': data.suc_hay_repudio || 'No',
-      'Beneficiario repudio': data.suc_beneficiario_repudio || '',
-      'Declaraciones adicionales': data.suc_declaraciones_adicionales || '',
-      // Testigos y docs
-      'Testigo 1': data.suc_testigo_1 || '',
-      'Testigo 2': data.suc_testigo_2 || '',
-      'Lista de documentales': data.suc_lista_documentales || '',
-      // Hechos y envío
-      'Narrativa de los hechos': data.suc_narrativa_hechos || '',
       'Chat ID Telegram': data.suc_chat_id_telegram || '',
     };
+
+    if (etapa === 1) {
+      // Etapa 1: full data (De Cujus + Cónyuge + Hijos + Representación + Albacea + Testigos + Hechos)
+      Object.assign(payload, {
+        'Nombre de cujus': data.suc_nombre_de_cujus || '',
+        'Género de cujus': data.suc_genero_de_cujus || '',
+        'Alias': data.suc_alias || '',
+        'Fecha defunción': data.suc_fecha_defuncion || '',
+        'Último domicilio': data.suc_ultimo_domicilio || '',
+        'Cónyuge comparece': data.suc_conyuge_comparece || 'No',
+        'Nombre cónyuge': data.suc_nombre_conyuge || '',
+        'Régimen matrimonial': data.suc_regimen_matrimonial || '',
+        'Fecha matrimonio': data.suc_fecha_matrimonio || '',
+        'Datos acta matrimonio': data.suc_datos_acta_matrimonio || '',
+        'Hijos comparecientes': data.suc_hijos_comparecientes || '',
+        'Total hijos': data.suc_total_hijos || '',
+        'Hijos fallecidos': data.suc_hijos_fallecidos || 'No',
+        'Detalle hijos fallecidos': data.suc_detalle_hijos_fallecidos || '',
+        'Domicilios interesados': data.suc_domicilios_interesados || '',
+        'Domicilio procesal': data.suc_domicilio_procesal || '',
+        'Abogados autorizados': data.suc_abogados_autorizados || '',
+        'Persona autorizada notificaciones': data.suc_persona_autorizada || '',
+        'Representante común': data.suc_representante_comun || '',
+        'Albacea propuesto': data.suc_albacea_propuesto || '',
+        'Hay repudio': data.suc_hay_repudio || 'No',
+        'Beneficiario repudio': data.suc_beneficiario_repudio || '',
+        'Declaraciones adicionales': data.suc_declaraciones_adicionales || '',
+        'Testigo 1': data.suc_testigo_1 || '',
+        'Testigo 2': data.suc_testigo_2 || '',
+        'Lista de documentales': data.suc_lista_documentales || '',
+        'Narrativa de los hechos': data.suc_narrativa_hechos || '',
+      });
+    } else if (etapa === 2) {
+      // Etapa 2: Inventarios y Avalúos
+      Object.assign(payload, {
+        'Sociedad conyugal': data.suc_e2_sociedad_conyugal || 'No',
+        'Descripción inmuebles': data.suc_e2_inmuebles || '',
+        'Documentos anexos': data.suc_e2_anexos || '',
+        'Narrativa de los hechos': data.suc_narrativa_hechos || '',
+      });
+    } else if (etapa === 3) {
+      // Etapa 3: Cuentas de Albaceazgo
+      Object.assign(payload, {
+        'Ingresos': data.suc_e3_ingresos || 'NO HUBO INGRESOS',
+        'Detalle gastos': data.suc_e3_gastos_detalle || '',
+        'Total gastos': data.suc_e3_total_gastos || '',
+        'Nota pagos': data.suc_e3_nota_pagos || '',
+        'Narrativa de los hechos': data.suc_narrativa_hechos || '',
+      });
+    } else if (etapa === 4) {
+      // Etapa 4: Partición de la Herencia
+      Object.assign(payload, {
+        'Tipo partición': data.suc_e4_tipo_particion || '',
+        'Antecedentes procesales': data.suc_e4_antecedentes || '',
+        'Proyecto partición': data.suc_e4_proyecto_particion || '',
+        'Datos notaría': data.suc_e4_datos_notaria || '',
+        'Datos cuenta bancaria': data.suc_e4_datos_cuenta || '',
+        'Desistimiento proyecto anterior': data.suc_e4_hay_desistimiento || 'No',
+        'Narrativa de los hechos': data.suc_narrativa_hechos || '',
+      });
+    }
+
+    return payload;
   }
 
   // --- PP MODE (existing) ---
@@ -1248,9 +1372,8 @@ document.getElementById('btn-retry')?.addEventListener('click', async () => {
 form.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
     e.preventDefault();
-    if (currentStep < TOTAL_STEPS) {
-      goToStep(currentStep + 1);
-    }
+    const next = getNextStep(currentStep);
+    if (next !== null) goToStep(next);
   }
 });
 
@@ -1298,10 +1421,49 @@ function switchJuicioMode(newMode) {
   Object.assign(STEP_TITLES, titles);
   stepTitle.textContent = STEP_TITLES[currentStep];
 
+  // When switching to sucesorio, apply current etapa selection
+  if (newMode === 'sucesorio') {
+    const etapaSelect = document.getElementById('etapa_sucesorio');
+    const etapa = parseInt(etapaSelect?.value) || 1;
+    switchEtapa(etapa);
+  } else {
+    etapaActual = 1;
+  }
+
   // Re-setup conditional fields for newly visible elements
   setupConditionalFields();
   updateFieldProgress();
 }
+
+// ============================================================
+//  ETAPA CHANGE -> toggle etapa-specific fields
+// ============================================================
+function switchEtapa(etapa) {
+  etapaActual = etapa;
+
+  // Toggle etapa-fields visibility
+  document.querySelectorAll('.etapa-fields').forEach(el => {
+    el.classList.add('hidden');
+  });
+  const activeFields = document.querySelector(`.etapa-${etapa}-fields`);
+  if (activeFields) activeFields.classList.remove('hidden');
+
+  // Update step dots for skipped steps
+  const active = getActiveSteps();
+  document.querySelectorAll('.step-dot').forEach(dot => {
+    const dotStep = parseInt(dot.dataset.step);
+    dot.classList.toggle('step-dot-skipped', !active.includes(dotStep));
+  });
+
+  // Re-setup conditional fields for newly visible elements
+  setupConditionalFields();
+  updateFieldProgress();
+}
+
+document.getElementById('etapa_sucesorio')?.addEventListener('change', (e) => {
+  const etapa = parseInt(e.target.value) || 1;
+  switchEtapa(etapa);
+});
 
 // ============================================================
 //  TIPO JUICIO change -> update fracciones / mode

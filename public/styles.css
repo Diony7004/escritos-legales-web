@@ -229,7 +229,15 @@
   color: white;
 }
 
-.step-dot:hover:not(.active) {
+.step-dot.step-dot-skipped {
+  border-color: #d1d5db;
+  background: #f3f4f6;
+  color: #d1d5db;
+  cursor: default;
+  opacity: 0.5;
+}
+
+.step-dot:hover:not(.active):not(.step-dot-skipped) {
   border-color: #93c5fd;
   background: #eff6ff;
   color: #2563eb;
