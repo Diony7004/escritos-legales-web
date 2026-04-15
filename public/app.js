@@ -1480,6 +1480,18 @@ function switchJuicioMode(newMode) {
 function switchEtapa(etapa) {
   etapaActual = etapa;
 
+  // Expediente obligatorio para Etapas 2-4 (necesario para UPDATE en Postgres)
+  const expInput = document.getElementById('numero_expediente');
+  if (expInput) {
+    if (etapa > 1) {
+      expInput.required = true;
+      expInput.placeholder = 'Ej: 1110/21 (obligatorio para Etapas 2-4)';
+    } else {
+      expInput.required = false;
+      expInput.placeholder = 'Ej: 1353/25 (vacío si es nuevo)';
+    }
+  }
+
   // Toggle etapa-fields visibility
   document.querySelectorAll('.etapa-fields').forEach(el => {
     el.classList.add('hidden');
