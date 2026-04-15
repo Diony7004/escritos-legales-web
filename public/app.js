@@ -347,11 +347,12 @@ function parseFechaTexto(texto) {
   }
 
   // Format: "03 03 2022" or "03/03/2022" or "03-03-2022" (DD MM YYYY)
-  match = t.match(/(\d{1,2})[\s/\-.](\d{1,2})[\s/\-.](\d{4})/);
+  match = t.match(/(\d{1,2})[\s/\-.](\d{1,2})[\s/\-.](\d{2,4})/);
   if (match) {
     const day = parseInt(match[1]);
     const month = parseInt(match[2]);
-    const year = parseInt(match[3]);
+    let year = parseInt(match[3]);
+    if (year < 100) year += 2000;
     if (month >= 1 && month <= 12 && day >= 1 && day <= 31) return { day, month, year };
   }
 
@@ -371,6 +372,16 @@ function parseFechaTexto(texto) {
   }
 
   return null;
+}
+
+const MESES_NOMBRE = ['', 'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+  'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
+function formatearFecha(texto) {
+  if (!texto) return texto;
+  const parsed = parseFechaTexto(texto);
+  if (!parsed) return texto;
+  return `${parsed.day} de ${MESES_NOMBRE[parsed.month]} de ${parsed.year}`;
 }
 
 function calcularEdad(fechaNacTexto) {
@@ -630,6 +641,34 @@ function setupAutoUppercase() {
   document.addEventListener('blur', (e) => {
     if (e.target.classList.contains('auto-uppercase') && e.target.value) {
       e.target.value = e.target.value.toUpperCase();
+    }
+  }, true);
+}
+
+// ============================================================
+//  FECHA AUTO-FORMAT (convierte cualquier formato a "DD de mes de AAAA")
+// ============================================================
+function setupFechaAutoFormat() {
+  const fechaFields = ['fecha_escrito', 'suc_fecha_defuncion', 'suc_fecha_matrimonio', 'fecha_nacimiento_demandado'];
+  fechaFields.forEach(id => {
+    const input = document.getElementById(id);
+    if (!input) return;
+    input.addEventListener('blur', () => {
+      const val = input.value.trim();
+      if (!val) return;
+      const formatted = formatearFecha(val);
+      if (formatted !== val) {
+        input.value = formatted;
+      }
+    });
+  });
+  // Also handle minor fecha_nacimiento fields (dynamic)
+  document.addEventListener('blur', (e) => {
+    if (e.target.classList.contains('menor-fecha-nac') && e.target.value.trim()) {
+      const formatted = formatearFecha(e.target.value.trim());
+      if (formatted !== e.target.value.trim()) {
+        e.target.value = formatted;
+      }
     }
   }, true);
 }
@@ -1493,6 +1532,7 @@ function init() {
   setupJuzgadoSelector();
   setupAbogadosTemplate();
   setupAutoUppercase();
+  setupFechaAutoFormat();
   setupSueldoFormat();
   setupPensionAutoLetra();
   setupCURPRFCValidation();

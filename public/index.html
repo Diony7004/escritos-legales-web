@@ -111,9 +111,9 @@
               <select id="etapa_sucesorio" name="etapa_sucesorio">
                 <option value="">Seleccionar etapa...</option>
                 <option value="1">Etapa 1 — Nombramiento de Herederos y Albacea</option>
-                <option value="2" disabled>Etapa 2 — Inventarios y Avalúos (próximamente)</option>
-                <option value="3" disabled>Etapa 3 — Cuentas de Albaceazgo (próximamente)</option>
-                <option value="4" disabled>Etapa 4 — Partición de la Herencia (próximamente)</option>
+                <option value="2">Etapa 2 — Inventarios y Avalúos</option>
+                <option value="3">Etapa 3 — Cuentas de Albaceazgo</option>
+                <option value="4">Etapa 4 — Partición de la Herencia</option>
               </select>
             </div>
           </div>
@@ -161,37 +161,154 @@
         </div>
         <!-- SUCESORIO MODE -->
         <div class="juicio-sucesorio hidden">
-          <div class="card">
-            <h2 class="card-title">Datos del De Cujus (Persona Fallecida)</h2>
-            <p class="card-desc">Información de la persona cuya sucesión se denuncia.</p>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-6">
-              <div class="field">
-                <label for="suc_nombre_de_cujus">Nombre completo <span class="req">*</span></label>
-                <input type="text" id="suc_nombre_de_cujus" name="suc_nombre_de_cujus" placeholder="Ej: ANTONIO CONCHAS OLIVA" required class="auto-uppercase">
-              </div>
-              <div class="field">
-                <label for="suc_genero_de_cujus">Género <span class="req">*</span></label>
-                <select id="suc_genero_de_cujus" name="suc_genero_de_cujus" required>
-                  <option value="">Seleccionar...</option>
-                  <option value="hombre">Hombre (del de cujus)</option>
-                  <option value="mujer">Mujer (de la de cujus)</option>
-                </select>
-              </div>
-              <div class="field md:col-span-2">
-                <label for="suc_alias">Alias / También conocido(a) como</label>
-                <div class="field-with-ai">
-                  <textarea id="suc_alias" name="suc_alias" rows="2" placeholder="Si tiene alias, escriba cada uno separado por coma. Ej: MA. LUZ GUTIÉRREZ RESÉNDIZ, MARÍA DE LA LUZ GUTIÉRREZ DE MARTÍNEZ" spellcheck="true"></textarea>
-                  <button type="button" class="btn-ai-check" data-field="suc_alias" title="Revisar redacción con IA">&#9998;</button>
+          <!-- ETAPA 1: De Cujus -->
+          <div class="etapa-fields etapa-1-fields">
+            <div class="card">
+              <h2 class="card-title">Datos del De Cujus (Persona Fallecida)</h2>
+              <p class="card-desc">Información de la persona cuya sucesión se denuncia.</p>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-6">
+                <div class="field">
+                  <label for="suc_nombre_de_cujus">Nombre completo <span class="req">*</span></label>
+                  <input type="text" id="suc_nombre_de_cujus" name="suc_nombre_de_cujus" placeholder="Ej: ANTONIO CONCHAS OLIVA" required class="auto-uppercase">
                 </div>
-                <p class="hint">Dejar vacío si no tiene alias.</p>
+                <div class="field">
+                  <label for="suc_genero_de_cujus">Género <span class="req">*</span></label>
+                  <select id="suc_genero_de_cujus" name="suc_genero_de_cujus" required>
+                    <option value="">Seleccionar...</option>
+                    <option value="hombre">Hombre (del de cujus)</option>
+                    <option value="mujer">Mujer (de la de cujus)</option>
+                  </select>
+                </div>
+                <div class="field md:col-span-2">
+                  <label for="suc_alias">Alias / También conocido(a) como</label>
+                  <div class="field-with-ai">
+                    <textarea id="suc_alias" name="suc_alias" rows="2" placeholder="Si tiene alias, escriba cada uno separado por coma. Ej: MA. LUZ GUTIÉRREZ RESÉNDIZ, MARÍA DE LA LUZ GUTIÉRREZ DE MARTÍNEZ" spellcheck="true"></textarea>
+                    <button type="button" class="btn-ai-check" data-field="suc_alias" title="Revisar redacción con IA">&#9998;</button>
+                  </div>
+                  <p class="hint">Dejar vacío si no tiene alias.</p>
+                </div>
+                <div class="field">
+                  <label for="suc_fecha_defuncion">Fecha de fallecimiento <span class="req">*</span></label>
+                  <input type="text" id="suc_fecha_defuncion" name="suc_fecha_defuncion" placeholder="Ej: 26 de octubre de 2023" required>
+                </div>
+                <div class="field">
+                  <label for="suc_ultimo_domicilio">Último domicilio del de cujus <span class="req">*</span></label>
+                  <input type="text" id="suc_ultimo_domicilio" name="suc_ultimo_domicilio" placeholder="Ej: Calle Ónix 267, Col. Satélite, Querétaro, Qro." required>
+                </div>
               </div>
-              <div class="field">
-                <label for="suc_fecha_defuncion">Fecha de fallecimiento <span class="req">*</span></label>
-                <input type="text" id="suc_fecha_defuncion" name="suc_fecha_defuncion" placeholder="Ej: 26 de octubre de 2023" required>
+            </div>
+          </div>
+
+          <!-- ETAPA 2: Inventarios y Avalúos -->
+          <div class="etapa-fields etapa-2-fields hidden">
+            <div class="card">
+              <h2 class="card-title">Inventarios y Avalúos</h2>
+              <p class="card-desc">Presente el inventario de bienes del de cujus. Los datos del caso se recuperan de la Etapa 1.</p>
+              <div class="grid grid-cols-1 gap-5 mt-6">
+                <div class="field">
+                  <label for="suc_e2_sociedad_conyugal">¿El matrimonio fue por sociedad conyugal?</label>
+                  <select id="suc_e2_sociedad_conyugal" name="suc_e2_sociedad_conyugal">
+                    <option value="No">No / No hubo matrimonio</option>
+                    <option value="Sí">Sí (50% corresponde al cónyuge)</option>
+                  </select>
+                  <p class="hint">Si fue sociedad conyugal, se mencionará que el 50% corresponde al cónyuge supérstite.</p>
+                </div>
+                <div class="field">
+                  <label for="suc_e2_inmuebles">Descripción de inmuebles <span class="req">*</span></label>
+                  <div class="field-with-ai">
+                    <textarea id="suc_e2_inmuebles" name="suc_e2_inmuebles" rows="8" placeholder="Describa cada inmueble con: ubicación, superficie, medidas y colindancias, folio real, clave catastral.&#10;&#10;Ej: 1.- Inmueble ubicado en Calle Ónix número 267, Fraccionamiento Satélite I, Querétaro, Qro., con superficie de 102 m²; colindancias: Al Norte 6.00m con Calle Ónix, Al Sur 6.00m con Baldío... Folio Real 275396, clave catastral 1401 001 27 001 005." required spellcheck="true"></textarea>
+                    <button type="button" class="btn-ai-check" data-field="suc_e2_inmuebles" title="Revisar redacción con IA">&#9998;</button>
+                  </div>
+                  <p class="hint">Si no hay inmuebles, escriba "No hay inmuebles". Las demás categorías (dinero, alhajas, etc.) se generan automáticamente como "no hay".</p>
+                </div>
+                <div class="field">
+                  <label for="suc_e2_anexos">Documentos anexos</label>
+                  <textarea id="suc_e2_anexos" name="suc_e2_anexos" rows="3" placeholder="Ej: Anexo certificados de libertad de gravamen y avalúos de ambos inmuebles." spellcheck="true"></textarea>
+                  <p class="hint">Mencione los documentos que acompaña (avalúos, escrituras, certificados).</p>
+                </div>
               </div>
-              <div class="field">
-                <label for="suc_ultimo_domicilio">Último domicilio del de cujus <span class="req">*</span></label>
-                <input type="text" id="suc_ultimo_domicilio" name="suc_ultimo_domicilio" placeholder="Ej: Calle Ónix 267, Col. Satélite, Querétaro, Qro." required>
+            </div>
+          </div>
+
+          <!-- ETAPA 3: Cuentas de Albaceazgo -->
+          <div class="etapa-fields etapa-3-fields hidden">
+            <div class="card">
+              <h2 class="card-title">Cuentas de Albaceazgo</h2>
+              <p class="card-desc">Presente la rendición de cuentas como albacea: ingresos y gastos de la sucesión.</p>
+              <div class="grid grid-cols-1 gap-5 mt-6">
+                <div class="field">
+                  <label for="suc_e3_ingresos">Ingresos</label>
+                  <input type="text" id="suc_e3_ingresos" name="suc_e3_ingresos" placeholder="Ej: NO HUBO INGRESOS" value="NO HUBO INGRESOS">
+                  <p class="hint">Casi siempre es "NO HUBO INGRESOS". Modifique solo si hubo.</p>
+                </div>
+                <div class="field">
+                  <label for="suc_e3_gastos_detalle">Detalle de gastos <span class="req">*</span></label>
+                  <div class="field-with-ai">
+                    <textarea id="suc_e3_gastos_detalle" name="suc_e3_gastos_detalle" rows="8" placeholder="Un gasto por línea con monto. Ej:&#10;Publicación de edictos $584.64&#10;Inscripción Registro Público $770.00&#10;Certificado de gravamen $566.00&#10;Copias certificadas $849.00&#10;Avalúo del predio $9,000.00" required spellcheck="true"></textarea>
+                    <button type="button" class="btn-ai-check" data-field="suc_e3_gastos_detalle" title="Revisar redacción con IA">&#9998;</button>
+                  </div>
+                </div>
+                <div class="field">
+                  <label for="suc_e3_total_gastos">Total de gastos <span class="req">*</span></label>
+                  <input type="text" id="suc_e3_total_gastos" name="suc_e3_total_gastos" placeholder="Ej: $63,057.64 (sesenta y tres mil cincuenta y siete pesos 64/100 m.n.)" required>
+                  <p class="hint">Incluya el monto en número y letra.</p>
+                </div>
+                <div class="field">
+                  <label for="suc_e3_nota_pagos">Nota sobre los pagos</label>
+                  <div class="field-with-ai">
+                    <textarea id="suc_e3_nota_pagos" name="suc_e3_nota_pagos" rows="3" placeholder="Ej: Dichos pagos los he realizado el suscrito y al momento de la partición se les cobrarán a los herederos proporcionalmente." spellcheck="true"></textarea>
+                    <button type="button" class="btn-ai-check" data-field="suc_e3_nota_pagos" title="Revisar redacción con IA">&#9998;</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ETAPA 4: Partición de la Herencia -->
+          <div class="etapa-fields etapa-4-fields hidden">
+            <div class="card">
+              <h2 class="card-title">Partición de la Herencia</h2>
+              <p class="card-desc">Presente el proyecto de partición: cómo se distribuirán los bienes.</p>
+              <div class="grid grid-cols-1 gap-5 mt-6">
+                <div class="field">
+                  <label for="suc_e4_tipo_particion">Tipo de partición <span class="req">*</span></label>
+                  <select id="suc_e4_tipo_particion" name="suc_e4_tipo_particion" required>
+                    <option value="">Seleccionar...</option>
+                    <option value="venta">Venta del inmueble y reparto del producto</option>
+                    <option value="adjudicacion">Adjudicación directa a heredero(s)</option>
+                  </select>
+                  <p class="hint">Venta: el inmueble se vende y se reparte. Adjudicación: se asigna directamente.</p>
+                </div>
+                <div class="field">
+                  <label for="suc_e4_antecedentes">Antecedentes procesales</label>
+                  <div class="field-with-ai">
+                    <textarea id="suc_e4_antecedentes" name="suc_e4_antecedentes" rows="6" placeholder="Narre los antecedentes del procedimiento. Ej:&#10;1. Sentencia de nombramiento de herederos del 9 de abril de 2024.&#10;2. Aceptación del cargo de albacea del 21 de junio de 2024.&#10;3. Cesión de derechos hereditarios del 10 de septiembre de 2024.&#10;4. Aprobación de inventarios y avalúos del 26 de noviembre de 2025." spellcheck="true"></textarea>
+                    <button type="button" class="btn-ai-check" data-field="suc_e4_antecedentes" title="Revisar redacción con IA">&#9998;</button>
+                  </div>
+                  <p class="hint">Opcional. Fechas y resoluciones relevantes del expediente.</p>
+                </div>
+                <div class="field">
+                  <label for="suc_e4_proyecto_particion">Proyecto de partición <span class="req">*</span></label>
+                  <div class="field-with-ai">
+                    <textarea id="suc_e4_proyecto_particion" name="suc_e4_proyecto_particion" rows="8" placeholder="Para VENTA: describa el inmueble, cuenta bancaria para depósito y porcentajes de cada heredero.&#10;&#10;Para ADJUDICACIÓN: describa los inmuebles y a quién se adjudican. Incluya datos de la notaría." required spellcheck="true"></textarea>
+                    <button type="button" class="btn-ai-check" data-field="suc_e4_proyecto_particion" title="Revisar redacción con IA">&#9998;</button>
+                  </div>
+                </div>
+                <div class="field conditional" data-show-when="suc_e4_tipo_particion=adjudicacion" style="display:none;">
+                  <label for="suc_e4_datos_notaria">Datos de la notaría</label>
+                  <textarea id="suc_e4_datos_notaria" name="suc_e4_datos_notaria" rows="2" placeholder="Ej: Notaría 62, Lic. Héctor César Jiménez Arreola, Circuito Álamos 83, Segunda Sección, Querétaro" spellcheck="true"></textarea>
+                </div>
+                <div class="field conditional" data-show-when="suc_e4_tipo_particion=venta" style="display:none;">
+                  <label for="suc_e4_datos_cuenta">Datos de cuenta bancaria</label>
+                  <textarea id="suc_e4_datos_cuenta" name="suc_e4_datos_cuenta" rows="2" placeholder="Ej: Cuenta 22991300846899, CLABE 127680013008468992, Banco Azteca" spellcheck="true"></textarea>
+                </div>
+                <div class="field">
+                  <label for="suc_e4_hay_desistimiento">¿Se desiste de proyecto anterior?</label>
+                  <select id="suc_e4_hay_desistimiento" name="suc_e4_hay_desistimiento">
+                    <option value="No">No (es el primer proyecto)</option>
+                    <option value="Sí">Sí (se corrige un proyecto previo)</option>
+                  </select>
+                </div>
               </div>
             </div>
           </div>
