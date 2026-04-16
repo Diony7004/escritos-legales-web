@@ -331,6 +331,9 @@ function getFirstVowel(str) {
 const MESES = {
   enero: 1, febrero: 2, marzo: 3, abril: 4, mayo: 5, junio: 6,
   julio: 7, agosto: 8, septiembre: 9, octubre: 10, noviembre: 11, diciembre: 12,
+  // Abreviados
+  ene: 1, feb: 2, mar: 3, abr: 4, may: 5, jun: 6,
+  jul: 7, ago: 8, sep: 9, oct: 10, nov: 11, dic: 12,
 };
 
 function parseFechaTexto(texto) {
@@ -344,6 +347,16 @@ function parseFechaTexto(texto) {
     const month = MESES[match[2]];
     const year = parseInt(match[3]);
     if (month && day && year) return { day, month, year };
+  }
+
+  // Format: "15 abr 2026" or "15 abril 2026" (DD mes YYYY, sin "de")
+  match = t.match(/(\d{1,2})\s+(\w+)\s+(\d{2,4})/);
+  if (match && MESES[match[2]]) {
+    const day = parseInt(match[1]);
+    const month = MESES[match[2]];
+    let year = parseInt(match[3]);
+    if (year < 100) year += 2000;
+    if (day && month && year) return { day, month, year };
   }
 
   // Format: "03 03 2022" or "03/03/2022" or "03-03-2022" (DD MM YYYY)
